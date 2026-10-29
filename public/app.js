@@ -242,6 +242,39 @@ function initSSE() {
   eventSource.onerror = () => {
     if (liveStatusText) liveStatusText.textContent = 'RECONNECTING...';
   };
+
+  // Vercel serverless heartbeat fallback: polls every 3.5 seconds
+  setInterval(async () => {
+    try {
+      const res = await fetch('/api/workshop');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.activePrompt) {
+        if (!currentActivePrompt || currentActivePrompt.id !== data.activePrompt.id || currentActivePrompt.content !== data.activePrompt.content) {
+          const isNew = !currentActivePrompt || currentActivePrompt.id !== data.activePrompt.id;
+          renderActivePrompt(data.activePrompt, isNew);
+          if (isNew && audioAlertsEnabled) {
+            playChime();
+            showToast(`🚀 New Prompt: ${data.activePrompt.title}`);
+          }
+        }
+      }
+      if (data.history && data.history.length !== promptHistory.length) {
+        promptHistory = data.history;
+        historyCountEl.textContent = promptHistory.length;
+        renderHistory();
+      }
+      if (data.broadcast && data.broadcast.text) {
+        showBroadcast(data.broadcast.text);
+      } else {
+        broadcastBanner.classList.add('hidden');
+      }
+      if (data.workshopTitle && workshopTitleEl.textContent !== data.workshopTitle) {
+        workshopTitleEl.textContent = data.workshopTitle;
+        document.title = `${data.workshopTitle} | Live Prompts`;
+      }
+    } catch {}
+  }, 3500);
 }
 
 // ---------------- RENDERING ----------------

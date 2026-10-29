@@ -17,7 +17,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // In-memory data store with file persistence and Supabase synchronization
 let store = {
-  workshopTitle: process.env.WORKSHOP_NAME || 'AI Workshop Live Prompts',
+  workshopTitle: process.env.WORKSHOP_NAME || 'Google Antigravity workshop by T M Saravanan',
   activePromptId: null,
   broadcast: null,
   prompts: []
@@ -29,17 +29,15 @@ function loadData() {
     if (fs.existsSync(DATA_FILE)) {
       const raw = fs.readFileSync(DATA_FILE, 'utf8');
       store = JSON.parse(raw);
-      console.log(`[Store] Loaded ${store.prompts?.length || 0} prompts from local cache (${DATA_FILE})`);
-    } else {
-      saveData();
     }
   } catch (err) {
-    console.error('[Store] Error loading prompts.json, initializing empty:', err.message);
+    // Ignore error in serverless environment
   }
 }
 
-// Persist data locally as offline fallback / cache
+// Persist data locally as offline fallback / cache (skipped on Vercel read-only filesystem)
 function saveData() {
+  if (process.env.VERCEL) return;
   try {
     const dir = path.dirname(DATA_FILE);
     if (!fs.existsSync(dir)) {
@@ -47,48 +45,31 @@ function saveData() {
     }
     fs.writeFileSync(DATA_FILE, JSON.stringify(store, null, 2), 'utf8');
   } catch (err) {
-    console.error('[Store] Error saving prompts.json:', err.message);
+    // Ignore error in serverless read-only filesystem
   }
 }
 
 // Initial local load
 loadData();
 
-// Synchronize with Supabase
-async function syncWithSupabase() {
-  if (!supabaseClient.isConnected()) {
-    console.log('[Supabase] No API key configured. Prompts are stored in data/prompts.json. You can connect your Supabase key anytime via .env or the Admin panel.');
-    return;
-  }
-
-  const cfg = supabaseClient.getConfig();
-  console.log(`[Supabase] Connecting to ${cfg.url}...`);
-
-  const result = await supabaseClient.loadAllFromSupabase();
-  if (result.success) {
-    if (result.prompts && result.prompts.length > 0) {
-      console.log(`[Supabase] Successfully loaded ${result.prompts.length} prompts from Supabase!`);
-      store.prompts = result.prompts;
-
-      if (result.settings) {
-        if (result.settings.workshopTitle) store.workshopTitle = result.settings.workshopTitle;
-        if (result.settings.activePromptId !== undefined) store.activePromptId = result.settings.activePromptId;
-        if (result.settings.broadcast !== undefined) store.broadcast = result.settings.broadcast;
+// Helper to ensure freshest data from Supabase (essential for Vercel serverless)
+async function ensureFreshData() {
+  if (supabaseClient.isConnected()) {
+    const supa = await supabaseClient.loadAllFromSupabase();
+    if (supa.success && supa.prompts) {
+      store.prompts = supa.prompts;
+      if (supa.settings) {
+        if (supa.settings.workshopTitle) store.workshopTitle = supa.settings.workshopTitle;
+        if (supa.settings.activePromptId !== undefined) store.activePromptId = supa.settings.activePromptId;
+        if (supa.settings.broadcast !== undefined) store.broadcast = supa.settings.broadcast;
       }
       saveData();
-    } else if (store.prompts && store.prompts.length > 0) {
-      // Supabase table is empty, auto-migrate existing local prompts into Supabase
-      console.log(`[Supabase] Prompts table is empty. Auto-migrating ${store.prompts.length} existing prompts into Supabase...`);
-      await supabaseClient.syncAllToSupabase(store);
     }
-  } else {
-    console.warn('[Supabase] Warning: Could not sync with Supabase tables:', result.error || result.reason);
-    console.warn('[Supabase] Ensure you have run supabase-schema.sql in your Supabase SQL Editor if tables do not exist yet.');
   }
 }
 
-// Trigger initial async sync
-syncWithSupabase();
+// Initial async sync
+ensureFreshData();
 
 // Connected SSE clients
 const sseClients = new Set();
@@ -109,7 +90,6 @@ function getLocalIpAddresses() {
   const addresses = [];
   for (const name of Object.keys(interfaces)) {
     for (const net of interfaces[name]) {
-      // Skip over non-IPv4 and internal (127.0.0.1) addresses
       if (net.family === 'IPv4' && !net.internal) {
         addresses.push(net.address);
       }
@@ -121,7 +101,10 @@ function getLocalIpAddresses() {
 // ---------------- PARTICIPANT ROUTES ----------------
 
 // Get workshop public state (only deployed prompts, active prompt, broadcast)
-app.get('/api/workshop', (req, res) => {
+app.get('/api/workshop', async (req, res) => {
+  // On serverless, ensure we get latest updates from Supabase
+  await ensureFreshData();
+
   const deployedPrompts = (store.prompts || [])
     .filter(p => p.status === 'deployed')
     .sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -150,7 +133,6 @@ app.get('/api/stream', (req, res) => {
   const client = { id: Date.now() + Math.random().toString(36).substr(2, 5), res };
   sseClients.add(client);
 
-  // Send initial ping and connected count
   res.write(`event: init\ndata: ${JSON.stringify({ connected: sseClients.size })}\n\n`);
   broadcastEvent('stats', { connected: sseClients.size });
 
@@ -160,7 +142,7 @@ app.get('/api/stream', (req, res) => {
   });
 });
 
-// Keep SSE alive every 25s
+// Keep SSE alive every 20s
 setInterval(() => {
   for (const client of sseClients) {
     try {
@@ -169,7 +151,7 @@ setInterval(() => {
       sseClients.delete(client);
     }
   }
-}, 25000);
+}, 20000);
 
 // ---------------- ADMIN AUTH & MIDDLEWARE ----------------
 
@@ -193,7 +175,9 @@ app.post('/api/admin/login', (req, res) => {
 // ---------------- ADMIN MANAGEMENT ROUTES ----------------
 
 // Get all prompts (drafts + deployed), network info, and Supabase status
-app.get('/api/admin/prompts', adminAuth, (req, res) => {
+app.get('/api/admin/prompts', adminAuth, async (req, res) => {
+  await ensureFreshData();
+
   const localIps = getLocalIpAddresses();
   const sorted = [...(store.prompts || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
 
@@ -249,10 +233,10 @@ app.post('/api/admin/prompts', adminAuth, async (req, res) => {
 
   saveData();
 
-  // Async save to Supabase
-  supabaseClient.savePrompt(newPrompt);
+  // Await save to Supabase for serverless durability
+  await supabaseClient.savePrompt(newPrompt);
   if (deployImmediately) {
-    supabaseClient.saveSettings(store.workshopTitle, store.activePromptId, store.broadcast);
+    await supabaseClient.saveSettings(store.workshopTitle, store.activePromptId, store.broadcast);
   }
 
   res.status(201).json({ success: true, prompt: newPrompt });
@@ -277,8 +261,8 @@ app.put('/api/admin/prompts/:id', adminAuth, async (req, res) => {
 
   saveData();
 
-  // Async save to Supabase
-  supabaseClient.savePrompt(prompt);
+  // Await save to Supabase
+  await supabaseClient.savePrompt(prompt);
 
   // If this was the active prompt, broadcast the updated content to participants
   if (store.activePromptId === id) {
@@ -286,7 +270,7 @@ app.put('/api/admin/prompts/:id', adminAuth, async (req, res) => {
       prompt,
       workshopTitle: store.workshopTitle
     });
-    supabaseClient.saveSettings(store.workshopTitle, store.activePromptId, store.broadcast);
+    await supabaseClient.saveSettings(store.workshopTitle, store.activePromptId, store.broadcast);
   }
 
   res.json({ success: true, prompt });
@@ -307,9 +291,9 @@ app.post('/api/admin/prompts/:id/deploy', adminAuth, async (req, res) => {
 
   saveData();
 
-  // Async save to Supabase
-  supabaseClient.savePrompt(prompt);
-  supabaseClient.saveSettings(store.workshopTitle, store.activePromptId, store.broadcast);
+  // Await save to Supabase
+  await supabaseClient.savePrompt(prompt);
+  await supabaseClient.saveSettings(store.workshopTitle, store.activePromptId, store.broadcast);
 
   // Instant real-time push to all participant browsers
   broadcastEvent('prompt:deployed', {
@@ -342,9 +326,9 @@ app.delete('/api/admin/prompts/:id', adminAuth, async (req, res) => {
 
   saveData();
 
-  // Async delete from Supabase
-  supabaseClient.deletePrompt(id);
-  supabaseClient.saveSettings(store.workshopTitle, store.activePromptId, store.broadcast);
+  // Await delete from Supabase
+  await supabaseClient.deletePrompt(id);
+  await supabaseClient.saveSettings(store.workshopTitle, store.activePromptId, store.broadcast);
 
   res.json({ success: true, message: 'Prompt deleted' });
 });
@@ -355,7 +339,7 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
   store.broadcast = message ? { text: message, timestamp: Date.now(), durationSec } : null;
 
   saveData();
-  supabaseClient.saveSettings(store.workshopTitle, store.activePromptId, store.broadcast);
+  await supabaseClient.saveSettings(store.workshopTitle, store.activePromptId, store.broadcast);
 
   broadcastEvent('broadcast:alert', store.broadcast);
   res.json({ success: true, broadcast: store.broadcast });
@@ -367,7 +351,7 @@ app.post('/api/admin/settings', adminAuth, async (req, res) => {
   if (workshopTitle) {
     store.workshopTitle = workshopTitle.trim();
     saveData();
-    supabaseClient.saveSettings(store.workshopTitle, store.activePromptId, store.broadcast);
+    await supabaseClient.saveSettings(store.workshopTitle, store.activePromptId, store.broadcast);
     broadcastEvent('workshop:updated', { workshopTitle: store.workshopTitle });
   }
   res.json({ success: true, workshopTitle: store.workshopTitle });
@@ -384,7 +368,7 @@ app.post('/api/admin/reorder', adminAuth, async (req, res) => {
     saveData();
 
     // Async sync prompt orders to Supabase
-    store.prompts.forEach(p => supabaseClient.savePrompt(p));
+    await Promise.all(store.prompts.map(p => supabaseClient.savePrompt(p)));
   }
   res.json({ success: true, prompts: store.prompts });
 });
@@ -433,32 +417,31 @@ app.post('/api/admin/supabase-config', adminAuth, async (req, res) => {
     return res.status(400).json({ error: 'Supabase API Key (anon or service_role) is required.' });
   }
 
-  // Update client
   const initialized = supabaseClient.initSupabase(url, key);
   if (!initialized) {
     return res.status(400).json({ error: 'Failed to initialize Supabase client with provided credentials.' });
   }
 
-  // Update .env file
-  try {
-    let envContent = fs.existsSync(ENV_FILE) ? fs.readFileSync(ENV_FILE, 'utf8') : '';
-    if (envContent.includes('SUPABASE_URL=')) {
-      envContent = envContent.replace(/SUPABASE_URL=.*/g, `SUPABASE_URL=${url}`);
-    } else {
-      envContent += `\nSUPABASE_URL=${url}`;
-    }
+  if (!process.env.VERCEL) {
+    try {
+      let envContent = fs.existsSync(ENV_FILE) ? fs.readFileSync(ENV_FILE, 'utf8') : '';
+      if (envContent.includes('SUPABASE_URL=')) {
+        envContent = envContent.replace(/SUPABASE_URL=.*/g, `SUPABASE_URL=${url}`);
+      } else {
+        envContent += `\nSUPABASE_URL=${url}`;
+      }
 
-    if (envContent.includes('SUPABASE_KEY=')) {
-      envContent = envContent.replace(/SUPABASE_KEY=.*/g, `SUPABASE_KEY=${key}`);
-    } else {
-      envContent += `\nSUPABASE_KEY=${key}`;
+      if (envContent.includes('SUPABASE_KEY=')) {
+        envContent = envContent.replace(/SUPABASE_KEY=.*/g, `SUPABASE_KEY=${key}`);
+      } else {
+        envContent += `\nSUPABASE_KEY=${key}`;
+      }
+      fs.writeFileSync(ENV_FILE, envContent.trim() + '\n', 'utf8');
+    } catch (err) {
+      // Ignore in serverless
     }
-    fs.writeFileSync(ENV_FILE, envContent.trim() + '\n', 'utf8');
-  } catch (err) {
-    console.error('[Supabase] Error writing .env:', err.message);
   }
 
-  // Perform sync
   let syncResult = null;
   if (pushLocalData) {
     syncResult = await supabaseClient.syncAllToSupabase(store);
@@ -469,9 +452,6 @@ app.post('/api/admin/supabase-config', adminAuth, async (req, res) => {
       if (syncResult.settings?.workshopTitle) store.workshopTitle = syncResult.settings.workshopTitle;
       if (syncResult.settings?.activePromptId) store.activePromptId = syncResult.settings.activePromptId;
       saveData();
-    } else if (syncResult.success && store.prompts.length > 0) {
-      // Empty in Supabase, auto seed
-      await supabaseClient.syncAllToSupabase(store);
     }
   }
 
@@ -490,7 +470,7 @@ app.post('/api/admin/supabase-sync', adminAuth, async (req, res) => {
     return res.status(400).json({ error: 'Supabase is not connected. Please provide an API key.' });
   }
 
-  const { direction = 'push' } = req.body; // 'push' (local -> Supabase) or 'pull' (Supabase -> local)
+  const { direction = 'push' } = req.body;
 
   if (direction === 'push') {
     const result = await supabaseClient.syncAllToSupabase(store);
@@ -509,19 +489,23 @@ app.post('/api/admin/supabase-sync', adminAuth, async (req, res) => {
   }
 });
 
-// Start Server
-app.listen(PORT, '0.0.0.0', () => {
-  const ips = getLocalIpAddresses();
-  console.log(`\n======================================================`);
-  console.log(`🚀 Workshop Live Prompts Server Running!`);
-  console.log(`------------------------------------------------------`);
-  console.log(`👥 Participants URL:  http://localhost:${PORT}`);
-  ips.forEach(ip => {
-    console.log(`👥 Participants Wi-Fi: http://${ip}:${PORT}`);
+// Start Server locally (Vercel serverless exports app without listening on a port)
+if (!process.env.VERCEL) {
+  app.listen(PORT, '0.0.0.0', () => {
+    const ips = getLocalIpAddresses();
+    console.log(`\n======================================================`);
+    console.log(`🚀 Workshop Live Prompts Server Running!`);
+    console.log(`------------------------------------------------------`);
+    console.log(`👥 Participants URL:  http://localhost:${PORT}`);
+    ips.forEach(ip => {
+      console.log(`👥 Participants Wi-Fi: http://${ip}:${PORT}`);
+    });
+    console.log(`🔐 Admin Control Center: http://localhost:${PORT}/admin.html`);
+    console.log(`⚡ Supabase Database:    ${supabaseClient.getConfig().url}`);
+    console.log(`   Connection Status:   ${supabaseClient.isConnected() ? 'CONNECTED ✅' : 'WAITING FOR API KEY ⚠️'}`);
+    console.log(`🔑 Admin Password:       ${ADMIN_PASSWORD}`);
+    console.log(`======================================================\n`);
   });
-  console.log(`🔐 Admin Control Center: http://localhost:${PORT}/admin.html`);
-  console.log(`⚡ Supabase Database:    ${supabaseClient.getConfig().url}`);
-  console.log(`   Connection Status:   ${supabaseClient.isConnected() ? 'CONNECTED ✅' : 'WAITING FOR API KEY ⚠️'}`);
-  console.log(`🔑 Admin Password:       ${ADMIN_PASSWORD}`);
-  console.log(`======================================================\n`);
-});
+}
+
+module.exports = app;
