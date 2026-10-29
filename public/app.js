@@ -344,85 +344,70 @@ function formatAntiPatternContent(text) {
     return `<div class="empty-section-hint">Anti-patterns and common failure modes will be covered live by the presenter.</div>`;
   }
 
-  const raw = text.trim();
-  const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+  const rawText = text.trim();
+  let badPrompt = '';
+  let explanation = '';
 
-  let exampleText = '';
-  let reasonHeading = '';
-  const reasonLines = [];
-  let inReasonSection = false;
-
-  for (const line of lines) {
-    const failureMatch = line.match(/^(why\s+(?:this\s+)?fails?:?)(.*)/i);
-    if (failureMatch) {
-      inReasonSection = true;
-      reasonHeading = failureMatch[1];
-      if (failureMatch[2] && failureMatch[2].trim()) {
-        reasonLines.push(failureMatch[2].trim());
-      }
-      continue;
-    }
-
-    if (!inReasonSection) {
-      if (!exampleText) {
-        exampleText = line;
-      } else {
-        exampleText += ' ' + line;
-      }
-    } else {
-      reasonLines.push(line);
-    }
+  // Split on "Why it/this fails"
+  const splitMatch = rawText.match(/(?:^|\n|\.\s+)(why\s+(?:it|this)\s+fails?:?[\s\S]*)/i);
+  if (splitMatch) {
+    badPrompt = rawText.substring(0, splitMatch.index).trim();
+    explanation = splitMatch[1].trim();
+  } else {
+    badPrompt = rawText;
   }
 
-  if (!reasonHeading && exampleText) {
-    const inlineSplit = exampleText.split(/(why\s+(?:this\s+)?fails?:?)/i);
-    if (inlineSplit.length >= 3) {
-      exampleText = inlineSplit[0].trim();
-      reasonHeading = inlineSplit[1].trim();
-      reasonLines.push(inlineSplit.slice(2).join('').trim());
-    }
-  }
-
-  let cleanExample = exampleText;
-  let prefixTag = '❌ ANTI-PATTERN EXAMPLE';
-  if (/^example\s*:\s*/i.test(cleanExample)) {
-    cleanExample = cleanExample.replace(/^example\s*:\s*/i, '');
-  } else if (/^❌\s*/.test(cleanExample)) {
-    cleanExample = cleanExample.replace(/^❌\s*/, '');
-  }
-  cleanExample = cleanExample.replace(/^['"]\s*|\s*['"]$/g, '');
+  // Clean bad prompt text: remove "Example:", "❌", and surrounding quotes
+  badPrompt = badPrompt.replace(/^example\s*:\s*/i, '');
+  badPrompt = badPrompt.replace(/^❌\s*/i, '');
+  badPrompt = badPrompt.replace(/^['"“\s]+|['"”\s]+$/g, '').trim();
 
   let html = '';
 
-  if (cleanExample) {
+  // 1. Red section: contains ONLY the bad prompt itself
+  if (badPrompt) {
     html += `
-      <div class="anti-pattern-block">
-        <div class="anti-pattern-badge">${escapeHtml(prefixTag)}</div>
-        <div class="anti-pattern-quote">"${escapeHtml(cleanExample)}"</div>
+      <div class="bad-prompt-callout">
+        <div class="bad-prompt-tag">❌ AVOID THIS PROMPT</div>
+        <div class="bad-prompt-text">"${escapeHtml(badPrompt)}"</div>
       </div>
     `;
   }
 
-  if (reasonHeading || reasonLines.length > 0) {
-    html += `<div class="trap-explanation">`;
-    if (reasonHeading) {
-      html += `<div class="trap-heading">⚠️ ${escapeHtml(reasonHeading.replace(/:$/, ''))}:</div>`;
-    }
-    if (reasonLines.length > 0) {
-      html += `<div class="trap-body">`;
-      for (const r of reasonLines) {
-        if (/^[•\-\*]/.test(r)) {
-          html += `<div class="trap-bullet">• ${escapeHtml(r.replace(/^[•\-\*]\s*/, ''))}</div>`;
-        } else {
-          html += `<p class="trap-para">${escapeHtml(r)}</p>`;
+  // 2. Normal text section: explanation displayed below the red box
+  if (explanation) {
+    const headingMatch = explanation.match(/^(why\s+(?:it|this)\s+fails?:?)\s*([\s\S]*)/i);
+    if (headingMatch) {
+      const heading = headingMatch[1].replace(/:$/, '') + ':';
+      const body = headingMatch[2].trim();
+      const bodyLines = body.split(/\r?\n/).filter(l => l.trim().length > 0);
+
+      html += `<div class="trap-explanation-normal">`;
+      if (bodyLines.length > 0) {
+        html += `<p><strong>${escapeHtml(heading)}</strong> ${escapeHtml(bodyLines[0])}</p>`;
+        for (let i = 1; i < bodyLines.length; i++) {
+          const line = bodyLines[i];
+          if (/^[•\-\*]/.test(line)) {
+            html += `<p style="padding-left: 10px;">• ${escapeHtml(line.replace(/^[•\-\*]\s*/, ''))}</p>`;
+          } else {
+            html += `<p>${escapeHtml(line)}</p>`;
+          }
         }
+      } else {
+        html += `<p><strong>${escapeHtml(heading)}</strong></p>`;
+      }
+      html += `</div>`;
+    } else {
+      const lines = explanation.split(/\r?\n/).filter(l => l.trim().length > 0);
+      html += `<div class="trap-explanation-normal">`;
+      for (const line of lines) {
+        html += `<p>${escapeHtml(line)}</p>`;
       }
       html += `</div>`;
     }
-    html += `</div>`;
   }
 
-  return html || `<div class="trap-body">${escapeHtml(raw)}</div>`;
+  return html;
 }
 
 function renderHistory() {
