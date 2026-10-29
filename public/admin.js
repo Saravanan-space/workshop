@@ -282,6 +282,13 @@ function initAdminSession() {
   fetchWorkshopData();
   setupRealtimeStream();
   checkSupabaseStatus();
+
+  // Periodic polling sync every 4s to guarantee Admin UI matches Supabase
+  setInterval(() => {
+    if (adminPassword && !authOverlay.classList.contains('active')) {
+      fetchWorkshopData();
+    }
+  }, 4000);
 }
 
 async function fetchWorkshopData() {

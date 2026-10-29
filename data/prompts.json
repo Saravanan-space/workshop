@@ -1,78 +1,18 @@
 {
   "workshopTitle": "Google Antigravity workshop by T M Saravanan",
-  "activePromptId": "p-1793212441309",
+  "activePromptId": null,
   "broadcast": null,
   "prompts": [
     {
-      "id": "p-1",
-      "title": "Module 1: The Persona & Role Priming Framework",
-      "content": "Act as an elite Senior Prompt Engineer and AI Solutions Architect. You have 10+ years of experience in system prompt optimization and few-shot reasoning workflows.\n\nYour task is to analyze my business problem and design a modular 3-step prompt chain.\n\nBefore providing the final prompt chain, ask me 3 clarifying questions about:\n1. Target audience and tone\n2. Key constraints or edge cases\n3. Desired output format (e.g. JSON, Markdown, Table)",
-      "notes": "Encourage participants to test this with GPT-4o or Claude 3.5 Sonnet.",
-      "whyItWorks": "1. Explicit Role Anchoring: Primes the model's weights toward expert terminology and methodical reasoning.\n2. Mandatory Clarification Gate: Prevents the AI from guessing assumptions by requiring 3 clarifying questions first.\n3. Modular Structure: Breaking the solution into a 3-step prompt chain yields significantly higher quality output than a monolithic prompt.",
-      "howNotToPrompt": "❌ \"Can you write me a prompt for my business?\"\n\nWhy this fails:\n• Zero context on your industry, audience, or constraints.\n• Leaves the AI guessing tone, depth, and output schema.\n• Leads to generic filler that requires 5+ tedious rounds of re-prompting.",
-      "status": "deployed",
-      "order": 1,
-      "createdAt": "2026-10-28T18:00:00+00:00",
-      "deployedAt": "2026-10-28T18:12:55.982+00:00"
-    },
-    {
-      "id": "p-2",
-      "title": "Module 2: Few-Shot In-Context Learning Prompt",
-      "content": "You are a customer feedback classifier. Categorize customer sentiment into: [URGENT_NEGATIVE, NEUTRAL, PRAISE, FEATURE_REQUEST]. Return ONLY a JSON object.\n\nExamples:\nInput: \"The export button fails every time with error 500!\"\nOutput: {\"category\": \"URGENT_NEGATIVE\", \"confidence\": 0.98, \"actionRequired\": true}\n\nInput: \"Loving the new dark mode theme, great job!\"\nOutput: {\"category\": \"PRAISE\", \"confidence\": 0.95, \"actionRequired\": false}\n\nInput: \"Can we please get a CSV export option on the dashboard?\"\nOutput: {\"category\": \"FEATURE_REQUEST\", \"confidence\": 0.92, \"actionRequired\": true}\n\nInput: \"The meeting is scheduled at 4pm tomorrow.\"\nOutput: {\"category\": \"NEUTRAL\", \"confidence\": 0.99, \"actionRequired\": false}\n\nNow classify this new input:\nInput: {{USER_INPUT}}",
-      "notes": "Observe how providing few-shot pairs forces deterministic JSON adherence.",
-      "whyItWorks": "1. Pattern Matching (Few-Shot): The LLM sees both negative and positive examples, establishing boundary definitions.\n2. Deterministic JSON Schema: Explicit key-value pairs eliminate conversational chatter and enable backend API consumption.\n3. Dynamic Input Token: {{USER_INPUT}} cleanly demarcates where real runtime variables get injected.",
-      "howNotToPrompt": "❌ \"Classify this customer feedback and tell me if they are mad or want a feature: 'The export button fails!'\"\n\nWhy this fails:\n• Returns conversational paragraphs rather than parseable data.\n• Ambiguous category boundaries cause hallucinations.\n• Inconsistent labels ('very angry' vs 'mad') break downstream automation.",
-      "status": "deployed",
-      "order": 2,
-      "createdAt": "2026-10-28T18:10:00+00:00",
-      "deployedAt": "2026-10-28T18:01:30.702+00:00"
-    },
-    {
-      "id": "p-3",
-      "title": "Module 3: Chain-of-Thought (CoT) Logic Solver",
-      "content": "Solve the following problem step by step.\n\nRules:\n1. Think through the problem inside <thinking> tags step by step.\n2. Verify any arithmetic calculations twice.\n3. State the final answer explicitly in a box: \\boxed{answer}.\n\nProblem:\nA company has 120 employees. 45% work remotely, 35% work hybrid, and the remaining work on-site. If 8 hybrid employees transition to fully remote, what is the new percentage of employees working on-site, hybrid, and remote?",
-      "notes": "Notice how enclosing thoughts in XML tags dramatically reduces math calculation errors.",
-      "whyItWorks": "1. Scratchpad Reasoning: Enclosing thought processes in <thinking> tags lets the model compute intermediate steps before committing tokens to the final answer.\n2. Self-Verification Constraint: Asking to check arithmetic twice activates error-detection attention heads.\n3. Structured Extraction: \\boxed{...} format makes programmatic evaluation effortless.",
-      "howNotToPrompt": "❌ \"What's the answer to this math problem? Don't explain, just give me the numbers.\"\n\nWhy this fails:\n• Forcing the model to output the final answer immediately without reasoning steps causes arithmetic errors.\n• LLMs calculate token-by-token; denying reasoning tokens drastically degrades math capability.",
+      "id": "p-1793284120577",
+      "title": "Initial prompt for the website",
+      "content": "this is the main prompt",
+      "notes": "",
+      "whyItWorks": "this will work",
+      "howNotToPrompt": "and this doesnt",
       "status": "draft",
-      "order": 3,
-      "createdAt": "2026-10-28T18:20:00+00:00"
-    },
-    {
-      "id": "p-1793211797183",
-      "title": "Create the hero section",
-      "content": "Act as an elite Senior Prompt Engineer and AI Solutions Architect. You have 10+ years of experience in system prompt optimization and few-shot reasoning workflows.\n\nYour task is to analyze my business problem and design a modular 3-step prompt chain.\n\nBefore providing the final prompt chain, ask me 3 clarifying questions about:\n1. Target audience and tone\n2. Key constraints or edge cases\n3. Desired output format (e.g. JSON, Markdown, Table)",
-      "notes": "",
-      "whyItWorks": "\"Create a single-page React app named 'Campus Idea Wall' using Tailwind CSS.\n\nRequirements:\n 1. Top Header: Bold title, subtitle, and an 'Add Idea' button.\n 2. Input Form: Fields for Student Name, Department dropdown (AIML, CSE, ECE, Mech), and Idea Textarea with a Submit button.\n 3. Idea Grid: Display 4 mock cards in a 2-column layout. Each card shows Author, Dept tag, Idea text, timestamp, and an interactive '▲ Upvote' button.\n 4. Design Style: Clean light theme, 2px solid black borders, light grey backgrounds, and soft pastel badges.\"",
-      "howNotToPrompt": "Prompt B: Fixing Console Errors (Template):\n \"I saw this red error in my browser inspect console:\n'PostgrestError: new row violates row-level security policy'\n Do not rewrite the entire app. Just tell me the single SQL permission command to paste into Supabase to allow submissions.\"",
-      "status": "deployed",
-      "order": 4,
-      "createdAt": "2026-10-28T18:23:17.183+00:00",
-      "deployedAt": "2026-10-28T18:23:40.392+00:00"
-    },
-    {
-      "id": "p-1793212419218",
-      "title": "ww",
-      "content": "ww",
-      "notes": "",
-      "whyItWorks": "",
-      "howNotToPrompt": "Prompt B: Fixing Console Errors (Template):\n \"I saw this red error in my browser inspect console:\n'PostgrestError: new row violates row-level security policy'\n Do not rewrite the entire app. Just tell me the single SQL permission command to paste into Supabase to allow submissions.\"",
-      "status": "deployed",
-      "order": 5,
-      "createdAt": "2026-10-28T18:33:39.218+00:00",
-      "deployedAt": "2026-10-28T18:33:39.218+00:00"
-    },
-    {
-      "id": "p-1793212441309",
-      "title": "33",
-      "content": "33",
-      "notes": "",
-      "whyItWorks": "de",
-      "howNotToPrompt": "Prompt B: Fixing Console Errors (Template):\n\n'PostgrestError: new row violates row-level security policy'\n Do not rewrite the entire app. Just tell me the single SQL permission command to paste into Supabase to allow submissions.\"",
-      "status": "deployed",
-      "order": 6,
-      "createdAt": "2026-10-28T18:34:01.309+00:00",
-      "deployedAt": "2026-10-28T18:34:01.309+00:00"
+      "order": 1,
+      "createdAt": "2026-10-29T14:28:40.577+00:00"
     }
   ]
 }

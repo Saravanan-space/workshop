@@ -15,61 +15,40 @@ const ENV_FILE = path.join(__dirname, '.env');
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// In-memory data store with file persistence and Supabase synchronization
-let store = {
+// Fallback in-memory store (used only if Supabase is offline / unreachable)
+let fallbackStore = {
   workshopTitle: process.env.WORKSHOP_NAME || 'Google Antigravity workshop by T M Saravanan',
   activePromptId: null,
   broadcast: null,
   prompts: []
 };
 
-// Load initial data from local file first (fast boot)
-function loadData() {
+// Load offline fallback from local file
+function loadFallback() {
   try {
     if (fs.existsSync(DATA_FILE)) {
       const raw = fs.readFileSync(DATA_FILE, 'utf8');
-      store = JSON.parse(raw);
+      fallbackStore = JSON.parse(raw);
     }
   } catch (err) {
-    // Ignore error in serverless environment
+    // Ignore in serverless
   }
 }
+loadFallback();
 
-// Persist data locally as offline fallback / cache (skipped on Vercel read-only filesystem)
-function saveData() {
+// Save offline fallback (disabled on Vercel)
+function saveFallback() {
   if (process.env.VERCEL) return;
   try {
     const dir = path.dirname(DATA_FILE);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(DATA_FILE, JSON.stringify(store, null, 2), 'utf8');
+    fs.writeFileSync(DATA_FILE, JSON.stringify(fallbackStore, null, 2), 'utf8');
   } catch (err) {
-    // Ignore error in serverless read-only filesystem
+    // Ignore
   }
 }
-
-// Initial local load
-loadData();
-
-// Helper to ensure freshest data from Supabase (essential for Vercel serverless)
-async function ensureFreshData() {
-  if (supabaseClient.isConnected()) {
-    const supa = await supabaseClient.loadAllFromSupabase();
-    if (supa.success && supa.prompts) {
-      store.prompts = supa.prompts;
-      if (supa.settings) {
-        if (supa.settings.workshopTitle) store.workshopTitle = supa.settings.workshopTitle;
-        if (supa.settings.activePromptId !== undefined) store.activePromptId = supa.settings.activePromptId;
-        if (supa.settings.broadcast !== undefined) store.broadcast = supa.settings.broadcast;
-      }
-      saveData();
-    }
-  }
-}
-
-// Initial async sync
-ensureFreshData();
 
 // Connected SSE clients
 const sseClients = new Set();
@@ -98,25 +77,61 @@ function getLocalIpAddresses() {
   return addresses;
 }
 
+/**
+ * Fetch workshop state strictly from Supabase (or fallback if offline)
+ */
+async function getLiveWorkshopState() {
+  if (supabaseClient.isConnected()) {
+    const res = await supabaseClient.loadAllFromSupabase();
+    if (res.success) {
+      const prompts = res.prompts || [];
+      const title = res.settings?.workshopTitle || process.env.WORKSHOP_NAME || 'Google Antigravity workshop by T M Saravanan';
+      const activePromptId = res.settings?.activePromptId || null;
+      const broadcast = res.settings?.broadcast || null;
+
+      // Update local fallback
+      fallbackStore.prompts = prompts;
+      fallbackStore.workshopTitle = title;
+      fallbackStore.activePromptId = activePromptId;
+      fallbackStore.broadcast = broadcast;
+      saveFallback();
+
+      return {
+        prompts,
+        workshopTitle: title,
+        activePromptId,
+        broadcast
+      };
+    }
+  }
+
+  // Fallback to local memory
+  return {
+    prompts: fallbackStore.prompts || [],
+    workshopTitle: fallbackStore.workshopTitle || process.env.WORKSHOP_NAME || 'Google Antigravity workshop by T M Saravanan',
+    activePromptId: fallbackStore.activePromptId || null,
+    broadcast: fallbackStore.broadcast || null
+  };
+}
+
 // ---------------- PARTICIPANT ROUTES ----------------
 
 // Get workshop public state (only deployed prompts, active prompt, broadcast)
 app.get('/api/workshop', async (req, res) => {
-  // On serverless, ensure we get latest updates from Supabase
-  await ensureFreshData();
+  const state = await getLiveWorkshopState();
 
-  const deployedPrompts = (store.prompts || [])
+  const deployedPrompts = state.prompts
     .filter(p => p.status === 'deployed')
     .sort((a, b) => (a.order || 0) - (b.order || 0));
 
-  const activePrompt = deployedPrompts.find(p => p.id === store.activePromptId) || deployedPrompts[deployedPrompts.length - 1] || null;
+  const activePrompt = deployedPrompts.find(p => p.id === state.activePromptId) || deployedPrompts[deployedPrompts.length - 1] || null;
 
   res.json({
-    workshopTitle: store.workshopTitle,
+    workshopTitle: state.workshopTitle,
     activePrompt,
     deployedCount: deployedPrompts.length,
     history: deployedPrompts,
-    broadcast: store.broadcast,
+    broadcast: state.broadcast,
     connectedParticipants: sseClients.size
   });
 });
@@ -174,18 +189,17 @@ app.post('/api/admin/login', (req, res) => {
 
 // ---------------- ADMIN MANAGEMENT ROUTES ----------------
 
-// Get all prompts (drafts + deployed), network info, and Supabase status
+// Get all prompts (drafts + deployed) directly from Supabase
 app.get('/api/admin/prompts', adminAuth, async (req, res) => {
-  await ensureFreshData();
-
+  const state = await getLiveWorkshopState();
   const localIps = getLocalIpAddresses();
-  const sorted = [...(store.prompts || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
+  const sorted = [...state.prompts].sort((a, b) => (a.order || 0) - (b.order || 0));
 
   res.json({
-    workshopTitle: store.workshopTitle,
-    activePromptId: store.activePromptId,
+    workshopTitle: state.workshopTitle,
+    activePromptId: state.activePromptId,
     prompts: sorted,
-    broadcast: store.broadcast,
+    broadcast: state.broadcast,
     connectedParticipants: sseClients.size,
     serverPort: PORT,
     localIps: localIps.map(ip => `http://${ip}:${PORT}`),
@@ -205,8 +219,9 @@ app.post('/api/admin/prompts', adminAuth, async (req, res) => {
     return res.status(400).json({ error: 'Title and Prompt content are required.' });
   }
 
+  const state = await getLiveWorkshopState();
+  const maxOrder = state.prompts.reduce((max, p) => Math.max(max, p.order || 0), 0);
   const newId = 'p-' + Date.now();
-  const maxOrder = store.prompts.reduce((max, p) => Math.max(max, p.order || 0), 0);
 
   const newPrompt = {
     id: newId,
@@ -221,22 +236,25 @@ app.post('/api/admin/prompts', adminAuth, async (req, res) => {
     deployedAt: deployImmediately ? new Date().toISOString() : null
   };
 
-  store.prompts.push(newPrompt);
-
-  if (deployImmediately) {
-    store.activePromptId = newId;
-    broadcastEvent('prompt:deployed', {
-      prompt: newPrompt,
-      workshopTitle: store.workshopTitle
-    });
+  // 1. Save directly to Supabase
+  if (supabaseClient.isConnected()) {
+    await supabaseClient.savePrompt(newPrompt);
+    if (deployImmediately) {
+      await supabaseClient.saveSettings(state.workshopTitle, newId, state.broadcast);
+    }
   }
 
-  saveData();
+  // 2. Update local fallback
+  fallbackStore.prompts.push(newPrompt);
+  if (deployImmediately) fallbackStore.activePromptId = newId;
+  saveFallback();
 
-  // Await save to Supabase for serverless durability
-  await supabaseClient.savePrompt(newPrompt);
+  // 3. Broadcast real-time event
   if (deployImmediately) {
-    await supabaseClient.saveSettings(store.workshopTitle, store.activePromptId, store.broadcast);
+    broadcastEvent('prompt:deployed', {
+      prompt: newPrompt,
+      workshopTitle: state.workshopTitle
+    });
   }
 
   res.status(201).json({ success: true, prompt: newPrompt });
@@ -245,7 +263,8 @@ app.post('/api/admin/prompts', adminAuth, async (req, res) => {
 // Update prompt
 app.put('/api/admin/prompts/:id', adminAuth, async (req, res) => {
   const { id } = req.params;
-  const prompt = store.prompts.find(p => p.id === id);
+  const state = await getLiveWorkshopState();
+  const prompt = state.prompts.find(p => p.id === id);
 
   if (!prompt) {
     return res.status(404).json({ error: 'Prompt not found.' });
@@ -259,18 +278,25 @@ app.put('/api/admin/prompts/:id', adminAuth, async (req, res) => {
   if (howNotToPrompt !== undefined) prompt.howNotToPrompt = howNotToPrompt.trim();
   if (order !== undefined) prompt.order = Number(order);
 
-  saveData();
+  // 1. Save to Supabase
+  if (supabaseClient.isConnected()) {
+    await supabaseClient.savePrompt(prompt);
+  }
 
-  // Await save to Supabase
-  await supabaseClient.savePrompt(prompt);
+  // 2. Update local fallback
+  const idx = fallbackStore.prompts.findIndex(p => p.id === id);
+  if (idx !== -1) fallbackStore.prompts[idx] = prompt;
+  saveFallback();
 
-  // If this was the active prompt, broadcast the updated content to participants
-  if (store.activePromptId === id) {
+  // 3. If active prompt, update and broadcast
+  if (state.activePromptId === id) {
     broadcastEvent('prompt:deployed', {
       prompt,
-      workshopTitle: store.workshopTitle
+      workshopTitle: state.workshopTitle
     });
-    await supabaseClient.saveSettings(store.workshopTitle, store.activePromptId, store.broadcast);
+    if (supabaseClient.isConnected()) {
+      await supabaseClient.saveSettings(state.workshopTitle, id, state.broadcast);
+    }
   }
 
   res.json({ success: true, prompt });
@@ -279,7 +305,8 @@ app.put('/api/admin/prompts/:id', adminAuth, async (req, res) => {
 // Deploy a prompt (upload / publish it live to participants)
 app.post('/api/admin/prompts/:id/deploy', adminAuth, async (req, res) => {
   const { id } = req.params;
-  const prompt = store.prompts.find(p => p.id === id);
+  const state = await getLiveWorkshopState();
+  const prompt = state.prompts.find(p => p.id === id);
 
   if (!prompt) {
     return res.status(404).json({ error: 'Prompt not found' });
@@ -287,18 +314,23 @@ app.post('/api/admin/prompts/:id/deploy', adminAuth, async (req, res) => {
 
   prompt.status = 'deployed';
   prompt.deployedAt = new Date().toISOString();
-  store.activePromptId = id;
 
-  saveData();
+  // 1. Save to Supabase
+  if (supabaseClient.isConnected()) {
+    await supabaseClient.savePrompt(prompt);
+    await supabaseClient.saveSettings(state.workshopTitle, id, state.broadcast);
+  }
 
-  // Await save to Supabase
-  await supabaseClient.savePrompt(prompt);
-  await supabaseClient.saveSettings(store.workshopTitle, store.activePromptId, store.broadcast);
+  // 2. Update local fallback
+  const idx = fallbackStore.prompts.findIndex(p => p.id === id);
+  if (idx !== -1) fallbackStore.prompts[idx] = prompt;
+  fallbackStore.activePromptId = id;
+  saveFallback();
 
-  // Instant real-time push to all participant browsers
+  // 3. Broadcast real-time
   broadcastEvent('prompt:deployed', {
     prompt,
-    workshopTitle: store.workshopTitle
+    workshopTitle: state.workshopTitle
   });
 
   res.json({ success: true, message: `Prompt "${prompt.title}" is now LIVE!`, prompt });
@@ -307,70 +339,101 @@ app.post('/api/admin/prompts/:id/deploy', adminAuth, async (req, res) => {
 // Delete prompt
 app.delete('/api/admin/prompts/:id', adminAuth, async (req, res) => {
   const { id } = req.params;
-  const idx = store.prompts.findIndex(p => p.id === id);
+  const state = await getLiveWorkshopState();
 
-  if (idx === -1) {
-    return res.status(404).json({ error: 'Prompt not found' });
+  // 1. Delete from Supabase
+  if (supabaseClient.isConnected()) {
+    await supabaseClient.deletePrompt(id);
   }
 
-  store.prompts.splice(idx, 1);
+  // 2. Delete from local fallback
+  const idx = fallbackStore.prompts.findIndex(p => p.id === id);
+  if (idx !== -1) fallbackStore.prompts.splice(idx, 1);
 
-  if (store.activePromptId === id) {
-    const deployed = store.prompts.filter(p => p.status === 'deployed');
-    store.activePromptId = deployed.length > 0 ? deployed[deployed.length - 1].id : null;
+  // 3. If this was the active prompt, switch to the last deployed or null
+  if (state.activePromptId === id) {
+    const remainingDeployed = fallbackStore.prompts.filter(p => p.status === 'deployed');
+    const nextActive = remainingDeployed.length > 0 ? remainingDeployed[remainingDeployed.length - 1] : null;
+    const nextId = nextActive ? nextActive.id : null;
+
+    fallbackStore.activePromptId = nextId;
+
+    if (supabaseClient.isConnected()) {
+      await supabaseClient.saveSettings(state.workshopTitle, nextId, state.broadcast);
+    }
+
     broadcastEvent('prompt:deployed', {
-      prompt: deployed.length > 0 ? deployed[deployed.length - 1] : null,
-      workshopTitle: store.workshopTitle
+      prompt: nextActive,
+      workshopTitle: state.workshopTitle
     });
   }
 
-  saveData();
-
-  // Await delete from Supabase
-  await supabaseClient.deletePrompt(id);
-  await supabaseClient.saveSettings(store.workshopTitle, store.activePromptId, store.broadcast);
-
+  saveFallback();
   res.json({ success: true, message: 'Prompt deleted' });
 });
 
 // Broadcast announcement to participant screens
 app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
   const { message, durationSec = 15 } = req.body;
-  store.broadcast = message ? { text: message, timestamp: Date.now(), durationSec } : null;
+  const broadcastObj = message ? { text: message, timestamp: Date.now(), durationSec } : null;
 
-  saveData();
-  await supabaseClient.saveSettings(store.workshopTitle, store.activePromptId, store.broadcast);
+  const state = await getLiveWorkshopState();
 
-  broadcastEvent('broadcast:alert', store.broadcast);
-  res.json({ success: true, broadcast: store.broadcast });
+  if (supabaseClient.isConnected()) {
+    await supabaseClient.saveSettings(state.workshopTitle, state.activePromptId, broadcastObj);
+  }
+
+  fallbackStore.broadcast = broadcastObj;
+  saveFallback();
+
+  broadcastEvent('broadcast:alert', broadcastObj);
+  res.json({ success: true, broadcast: broadcastObj });
 });
 
 // Update workshop settings
 app.post('/api/admin/settings', adminAuth, async (req, res) => {
   const { workshopTitle } = req.body;
   if (workshopTitle) {
-    store.workshopTitle = workshopTitle.trim();
-    saveData();
-    await supabaseClient.saveSettings(store.workshopTitle, store.activePromptId, store.broadcast);
-    broadcastEvent('workshop:updated', { workshopTitle: store.workshopTitle });
+    const trimmedTitle = workshopTitle.trim();
+    const state = await getLiveWorkshopState();
+
+    if (supabaseClient.isConnected()) {
+      await supabaseClient.saveSettings(trimmedTitle, state.activePromptId, state.broadcast);
+    }
+
+    fallbackStore.workshopTitle = trimmedTitle;
+    saveFallback();
+
+    broadcastEvent('workshop:updated', { workshopTitle: trimmedTitle });
   }
-  res.json({ success: true, workshopTitle: store.workshopTitle });
+  res.json({ success: true, workshopTitle: fallbackStore.workshopTitle });
 });
 
 // Reorder prompts
 app.post('/api/admin/reorder', adminAuth, async (req, res) => {
   const { orderedIds } = req.body;
   if (Array.isArray(orderedIds)) {
+    const state = await getLiveWorkshopState();
+
+    if (supabaseClient.isConnected()) {
+      const updates = orderedIds.map((id, index) => {
+        const p = state.prompts.find(item => item.id === id);
+        if (p) {
+          p.order = index + 1;
+          return supabaseClient.savePrompt(p);
+        }
+        return Promise.resolve();
+      });
+      await Promise.all(updates);
+    }
+
     orderedIds.forEach((id, index) => {
-      const p = store.prompts.find(item => item.id === id);
+      const p = fallbackStore.prompts.find(item => item.id === id);
       if (p) p.order = index + 1;
     });
-    saveData();
-
-    // Async sync prompt orders to Supabase
-    await Promise.all(store.prompts.map(p => supabaseClient.savePrompt(p)));
+    saveFallback();
   }
-  res.json({ success: true, prompts: store.prompts });
+  res.json({ success: true, message: 'Reordered successfully' });
 });
 
 // Server info / IP address for sharing
@@ -402,13 +465,13 @@ app.get('/api/admin/supabase-status', adminAuth, async (req, res) => {
     keyPreview: cfg.keyPreview,
     promptsInSupabase: dbCheck?.prompts ? dbCheck.prompts.length : 0,
     dbCheck: dbCheck?.success ? 'OK' : (dbCheck?.error || 'Not tested'),
-    promptsInLocal: store.prompts.length
+    promptsInLocal: fallbackStore.prompts.length
   });
 });
 
 // Configure Supabase Key / URL from Admin UI
 app.post('/api/admin/supabase-config', adminAuth, async (req, res) => {
-  const { supabaseUrl, supabaseKey, pushLocalData } = req.body;
+  const { supabaseUrl, supabaseKey } = req.body;
 
   const url = (supabaseUrl || process.env.SUPABASE_URL || 'https://osifexxyqaadkwqrmgds.supabase.co').trim();
   const key = (supabaseKey || '').trim();
@@ -442,25 +505,11 @@ app.post('/api/admin/supabase-config', adminAuth, async (req, res) => {
     }
   }
 
-  let syncResult = null;
-  if (pushLocalData) {
-    syncResult = await supabaseClient.syncAllToSupabase(store);
-  } else {
-    syncResult = await supabaseClient.loadAllFromSupabase();
-    if (syncResult.success && syncResult.prompts && syncResult.prompts.length > 0) {
-      store.prompts = syncResult.prompts;
-      if (syncResult.settings?.workshopTitle) store.workshopTitle = syncResult.settings.workshopTitle;
-      if (syncResult.settings?.activePromptId) store.activePromptId = syncResult.settings.activePromptId;
-      saveData();
-    }
-  }
-
   res.json({
     success: true,
     message: 'Supabase configured successfully!',
     connected: supabaseClient.isConnected(),
-    url,
-    syncResult
+    url
   });
 });
 
@@ -470,26 +519,26 @@ app.post('/api/admin/supabase-sync', adminAuth, async (req, res) => {
     return res.status(400).json({ error: 'Supabase is not connected. Please provide an API key.' });
   }
 
-  const { direction = 'push' } = req.body;
+  const { direction = 'pull' } = req.body;
 
   if (direction === 'push') {
-    const result = await supabaseClient.syncAllToSupabase(store);
-    return res.json({ success: result.success, message: `Pushed ${store.prompts.length} prompts to Supabase`, details: result });
+    const result = await supabaseClient.syncAllToSupabase(fallbackStore);
+    return res.json({ success: result.success, message: `Pushed ${fallbackStore.prompts.length} prompts to Supabase`, details: result });
   } else {
     const result = await supabaseClient.loadAllFromSupabase();
     if (result.success && result.prompts) {
-      store.prompts = result.prompts;
-      if (result.settings?.workshopTitle) store.workshopTitle = result.settings.workshopTitle;
-      if (result.settings?.activePromptId) store.activePromptId = result.settings.activePromptId;
-      saveData();
-      return res.json({ success: true, message: `Loaded ${result.prompts.length} prompts from Supabase`, prompts: store.prompts });
+      fallbackStore.prompts = result.prompts;
+      if (result.settings?.workshopTitle) fallbackStore.workshopTitle = result.settings.workshopTitle;
+      if (result.settings?.activePromptId) fallbackStore.activePromptId = result.settings.activePromptId;
+      saveFallback();
+      return res.json({ success: true, message: `Loaded ${result.prompts.length} prompts from Supabase`, prompts: fallbackStore.prompts });
     } else {
       return res.status(500).json({ success: false, error: result.error || 'Failed to pull from Supabase' });
     }
   }
 });
 
-// Start Server locally (Vercel serverless exports app without listening on a port)
+// Start Server locally
 if (!process.env.VERCEL) {
   app.listen(PORT, '0.0.0.0', () => {
     const ips = getLocalIpAddresses();
