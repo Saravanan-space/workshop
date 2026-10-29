@@ -286,8 +286,9 @@ function renderActivePrompt(prompt, shouldAnimate = true) {
   emptyState.classList.add('hidden');
   promptView.classList.remove('hidden');
 
-  // Subheader
-  promptTitle.textContent = prompt.title;
+  // Subheader: remove "Module" prefix from heading
+  const cleanTitle = (prompt.title || '').replace(/^module\s*\d*\s*[:\-–—]\s*/i, '').trim();
+  promptTitle.textContent = cleanTitle || prompt.title;
   stageStepPill.textContent = prompt.order ? `STEP ${prompt.order}` : 'LIVE PROMPT';
 
   // Left Pane: Code & Stats
@@ -296,7 +297,7 @@ function renderActivePrompt(prompt, shouldAnimate = true) {
   const words = prompt.content.trim() ? prompt.content.trim().split(/\s+/).length : 0;
   promptWordStats.textContent = `${chars} chars • ${words} words`;
 
-  // Presenter Note
+  // Presenter Note (Host Tip)
   if (prompt.notes && prompt.notes.trim()) {
     presenterTipText.textContent = prompt.notes;
     presenterTipBox.classList.remove('hidden');
@@ -329,10 +330,9 @@ function renderActivePrompt(prompt, shouldAnimate = true) {
 function formatBulletContent(text) {
   const lines = text.split('\n').filter(l => l.trim().length > 0);
   return lines.map(line => {
-    // If line starts with a number or bullet or dash
     const cleanLine = line.replace(/^(\d+\.|\-|\•)\s*/, '');
     const parts = cleanLine.split(':');
-    if (parts.length > 1) {
+    if (parts.length > 1 && parts[0].length < 40) {
       return `<p style="margin-bottom: 8px;"><strong>• ${escapeHtml(parts[0].trim())}:</strong> ${escapeHtml(parts.slice(1).join(':').trim())}</p>`;
     }
     return `<p style="margin-bottom: 8px;">• ${escapeHtml(cleanLine)}</p>`;
@@ -340,27 +340,89 @@ function formatBulletContent(text) {
 }
 
 function formatAntiPatternContent(text) {
-  // Check if there is a quoted bad prompt or trap explanation
-  const lines = text.split('\n').filter(l => l.trim().length > 0);
-  let badPromptLine = '';
-  const explanations = [];
+  if (!text || !text.trim()) {
+    return `<div class="empty-section-hint">Anti-patterns and common failure modes will be covered live by the presenter.</div>`;
+  }
+
+  const raw = text.trim();
+  const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+
+  let exampleText = '';
+  let reasonHeading = '';
+  const reasonLines = [];
+  let inReasonSection = false;
 
   for (const line of lines) {
-    if (!badPromptLine && (line.includes('"') || line.includes('❌'))) {
-      badPromptLine = line.replace(/^❌\s*/, '');
+    const failureMatch = line.match(/^(why\s+(?:this\s+)?fails?:?)(.*)/i);
+    if (failureMatch) {
+      inReasonSection = true;
+      reasonHeading = failureMatch[1];
+      if (failureMatch[2] && failureMatch[2].trim()) {
+        reasonLines.push(failureMatch[2].trim());
+      }
+      continue;
+    }
+
+    if (!inReasonSection) {
+      if (!exampleText) {
+        exampleText = line;
+      } else {
+        exampleText += ' ' + line;
+      }
     } else {
-      explanations.push(line);
+      reasonLines.push(line);
     }
   }
 
+  if (!reasonHeading && exampleText) {
+    const inlineSplit = exampleText.split(/(why\s+(?:this\s+)?fails?:?)/i);
+    if (inlineSplit.length >= 3) {
+      exampleText = inlineSplit[0].trim();
+      reasonHeading = inlineSplit[1].trim();
+      reasonLines.push(inlineSplit.slice(2).join('').trim());
+    }
+  }
+
+  let cleanExample = exampleText;
+  let prefixTag = '❌ ANTI-PATTERN EXAMPLE';
+  if (/^example\s*:\s*/i.test(cleanExample)) {
+    cleanExample = cleanExample.replace(/^example\s*:\s*/i, '');
+  } else if (/^❌\s*/.test(cleanExample)) {
+    cleanExample = cleanExample.replace(/^❌\s*/, '');
+  }
+  cleanExample = cleanExample.replace(/^['"]\s*|\s*['"]$/g, '');
+
   let html = '';
-  if (badPromptLine) {
-    html += `<div class="bad-prompt-callout">${escapeHtml(badPromptLine)}</div>`;
+
+  if (cleanExample) {
+    html += `
+      <div class="anti-pattern-block">
+        <div class="anti-pattern-badge">${escapeHtml(prefixTag)}</div>
+        <div class="anti-pattern-quote">"${escapeHtml(cleanExample)}"</div>
+      </div>
+    `;
   }
-  if (explanations.length > 0) {
-    html += `<div class="trap-explanation">${explanations.map(e => `<p style="margin-bottom: 6px;">${escapeHtml(e)}</p>`).join('')}</div>`;
+
+  if (reasonHeading || reasonLines.length > 0) {
+    html += `<div class="trap-explanation">`;
+    if (reasonHeading) {
+      html += `<div class="trap-heading">⚠️ ${escapeHtml(reasonHeading.replace(/:$/, ''))}:</div>`;
+    }
+    if (reasonLines.length > 0) {
+      html += `<div class="trap-body">`;
+      for (const r of reasonLines) {
+        if (/^[•\-\*]/.test(r)) {
+          html += `<div class="trap-bullet">• ${escapeHtml(r.replace(/^[•\-\*]\s*/, ''))}</div>`;
+        } else {
+          html += `<p class="trap-para">${escapeHtml(r)}</p>`;
+        }
+      }
+      html += `</div>`;
+    }
+    html += `</div>`;
   }
-  return html || escapeHtml(text);
+
+  return html || `<div class="trap-body">${escapeHtml(raw)}</div>`;
 }
 
 function renderHistory() {
@@ -373,7 +435,7 @@ function renderHistory() {
   historyList.innerHTML = reversed.map((p, idx) => `
     <div class="history-item-card">
       <div class="history-item-top">
-        <span class="history-item-title">#${reversed.length - idx}: ${escapeHtml(p.title)}</span>
+        <span class="history-item-title">#${reversed.length - idx}: ${escapeHtml((p.title || '').replace(/^module\s*\d*\s*[:\-–—]\s*/i, '').trim())}</span>
         <button class="btn-copy-mini" onclick="copyHistoryItem('${p.id}', this)">Copy</button>
       </div>
       <div class="history-item-preview">${escapeHtml(p.content)}</div>

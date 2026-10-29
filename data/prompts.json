@@ -1,52 +1,52 @@
 {
   "workshopTitle": "Google Antigravity workshop by T M Saravanan",
-  "activePromptId": "p-1793287481971",
+  "activePromptId": "p-1793288020804",
   "broadcast": null,
   "prompts": [
     {
-      "id": "p-1793287481971",
-      "title": "Step 1: The Zero-Gravity Hero & Floating Header (Min 0–12)",
+      "id": "p-1793288020804",
+      "title": "Floating Header & Intro",
       "content": "Act as an expert website designer and creative frontend developer. Build the opening 'Hero' screen and navigation bar for my personal portfolio website using HTML, CSS, and lightweight JavaScript.\n\n- Theme & Style: 'Anti-Gravity / Zero Gravity'. Use a dark space background (obsidian slate #0b0f19) with soft floating glowing light orbs drifting gently behind the text.\n- Header Navigation: A sleek, floating frosted-glass navbar at the top that stays visible as I scroll, with a blur effect and links: 'About', 'Projects', 'Skills', and 'Contact'.\n- Hero Content:\n  - Small pill badge at top: '🟢 Available for New Projects'\n  - Big Headline: 'Hi, I am [REPLACE: YOUR NAME] — Defying Gravity Through Code.'\n  - Short Bio: '[REPLACE: YOUR ROLE] building sleek, interactive digital experiences.'\n  - Two Buttons: A primary glowing button 'View My Work' that floats upward slightly on hover, and a secondary outline button 'Say Hello'.\n- Make sure it fits all laptop screens and mobile phones smoothly.",
-      "notes": "Hey everyone, before you hit send, look at the brackets! Swap out [REPLACE: YOUR NAME] with your actual name and [REPLACE: YOUR ROLE] with what you want to be known for—like 'Frontend Explorer' or 'AI Enthusiast'. Leave the color codes like #0b0f19 exactly as they are so our space background doesn't break.",
-      "whyItWorks": "Establishes an immediate visual theme with specific color values (#0b0f19) and frosted-glass styling instead of ambiguous 'dark mode'. It also sets up a clean layout hierarchy (badge, heading, bio, dual buttons) so the AI delivers structured output rather than generic text blocks.",
-      "howNotToPrompt": "Example: 'Make a cool hero page for my website. My name is Alex and I want it to look futuristic with space floating stuff.'\nWhy it fails: Terms like 'cool' and 'futuristic' are subjective. The AI will guess unpredictably, often producing mismatched neon palettes, unstyled native buttons, and no mobile-responsive containers.",
+      "notes": "Replace [REPLACE: YOUR NAME] and [REPLACE: YOUR ROLE] with your own details before sending. Keep the color code #0b0f19 as is.",
+      "whyItWorks": "Defines an exact visual theme, color palette, and layout hierarchy so the AI delivers structured components rather than a generic text block.",
+      "howNotToPrompt": "Example: 'Make a cool hero page for my website. My name is Alex and I want it to look futuristic with space floating stuff.'\nWhy it fails: 'Cool' is subjective. The AI guesses blindly, resulting in clashing colors, unstyled buttons, and broken mobile layouts.",
       "status": "deployed",
       "order": 1,
-      "createdAt": "2026-10-29T15:24:41.971+00:00",
-      "deployedAt": "2026-10-29T15:24:41.973+00:00"
+      "createdAt": "2026-10-29T15:33:40.804+00:00",
+      "deployedAt": "2026-10-29T15:33:40.806+00:00"
     },
     {
-      "id": "p-1793287481974",
-      "title": "Step 2: Floating Project Cards (Min 12–24)",
+      "id": "p-1793288020807",
+      "title": "Floating Project Cards",
       "content": "Keep the same dark style, fonts, and colors from before. Now add a 'Featured Projects' section directly below the Hero section.\n\n- Layout: Display 3 project cards side-by-side in a responsive grid.\n- Anti-Gravity Floating Effect:\n  - Design the cards as dark, semi-transparent glass panels.\n  - When I hover my mouse over a card, it should smoothly lift up slightly (translateY(-8px)), cast a soft colored glow around its edges, and have a subtle 3D tilt effect following the mouse.\n- Card Details:\n  - Project 1: [REPLACE: Project One Name] — A 2-sentence description, tech tags, and two buttons: 'Live Demo' and 'Source Code'.\n  - Project 2: [REPLACE: Project Two Name] — A 2-sentence description and tech tags.\n  - Project 3: [REPLACE: Project Three Name] — A 2-sentence description and tech tags.\n- Add a simple row of category filters above the cards ('All', 'Apps', 'Designs') that highlights when clicked.",
-      "notes": "Time to show off your work! Put your real hackathon, class, or hobby projects into [REPLACE: Project One/Two/Three Name]. If you don't have three finished projects right now, don't worry—use names like 'Campus Event Portal' or 'Smart Drone Controller' so you don't slow down. Once it generates, hover your mouse over the cards to feel that zero-G lift!",
-      "whyItWorks": "Begins with an explicit continuity rule ('Keep the same dark style...') to prevent the model from overriding earlier styling or resetting typography. It defines exact transform cues (translateY(-8px)) and sets a uniform schema for cards so layout grids stay symmetric.",
-      "howNotToPrompt": "Example: 'Now put my projects under it and make them move when I touch them with the mouse.'\nWhy it fails: It omits project count, data schemas, and transition bounds. The AI tends to generate unthrottled JavaScript mouse listeners that cause frame drops or misalign card heights.",
+      "notes": "Fill in your real project names or use ideas like 'Task App' or 'Drone Dashboard'. Hover over cards to check the 3D lift.",
+      "whyItWorks": "Maintains design continuity with previous sections, defines uniform card data, and uses precise movement rules (translateY(-8px)) to avoid messy animations.",
+      "howNotToPrompt": "Example: 'Now put my projects under it and make them move when I touch them with the mouse.'\nWhy it fails: Missing layout structure and motion boundaries, causing jumpy animations and uneven card heights.",
       "status": "draft",
       "order": 2,
-      "createdAt": "2026-10-29T15:24:41.973+00:00"
+      "createdAt": "2026-10-29T15:33:40.806+00:00"
     },
     {
-      "id": "p-1793287481975",
-      "title": "Step 3: Zero-G Drifting Skills & Timeline (Min 24–36)",
+      "id": "p-1793288020808",
+      "title": "Drifting Skills & Experience",
       "content": "Add an interactive 'Skills & Experience' section below the projects, continuing our anti-gravity theme.\n\n- Floating Skills Badges:\n  - Show my skills as rounded pill badges (e.g., JavaScript, Python, UI/UX Design, Prompt Engineering, Git, CSS Animation).\n  - Give each skill badge a gentle, slow bobbing animation (as if floating in zero gravity) with each pill moving at a slightly different speed or delay so it looks natural.\n  - When hovering over any skill pill, it stops floating, glows brighter, and scales up slightly.\n- Journey Timeline:\n  - Next to or below the skills, add a simple vertical timeline showing 3 career/education milestones with a glowing accent line and circular dots:\n    - 2026: [REPLACE: Recent Milestone]\n    - 2025: [REPLACE: Previous Milestone]\n    - 2024: [REPLACE: Starting Milestone]\n- Ensure all animations run smoothly without slowing down the browser.",
-      "notes": "Make this section truly yours by changing the timeline milestones to your own achievements—a hackathon you attended, your current college degree, or a tool you mastered. Also, check out your skill badges: they should be gently bobbing at different tempos. If they drift too fast across your screen, just prompt the AI: 'Make the floating speed 50% slower.'",
-      "whyItWorks": "Specifying staggered animation delays avoids synchronous bouncing where every pill moves together mechanically. Adding the hover freeze ('stops floating, glows brighter') ensures elements stay easily legible during user interaction.",
-      "howNotToPrompt": "Example: 'Show my skills floating around in space and add a timeline.'\nWhy it fails: Without defined positioning envelopes, the AI frequently builds free-floating elements that wander outside screen bounds or overlap body copy.",
+      "notes": "Update the 3 milestones with your own education or achievements. If the badges float too fast, tell AI: 'Make floating speed 50% slower.'",
+      "whyItWorks": "Staggered delays make floating elements feel natural instead of robotic, while hover pauses keep text easy to read.",
+      "howNotToPrompt": "Example: 'Show my skills floating around in space and add a timeline.'\nWhy it fails: AI creates chaotic scripts that push tags off-screen or cover up text.",
       "status": "draft",
       "order": 3,
-      "createdAt": "2026-10-29T15:24:41.973+00:00"
+      "createdAt": "2026-10-29T15:33:40.806+00:00"
     },
     {
-      "id": "p-1793287481976",
-      "title": "Step 4: Interactive Mouse Dust & Contact Deck (Min 36–45)",
+      "id": "p-1793288020809",
+      "title": "Space Dust & Contact Form",
       "content": "Complete the portfolio by adding a final 'Contact' section, interactive background particles, and a clean footer.\n\n- Interactive Mouse Feature: Create a subtle particle background using an HTML5 canvas. Tiny stardust particles should slowly drift and gently scatter away whenever the mouse moves near them, then slowly float back.\n- Contact Card:\n  - Headline: 'Let's Build Something Out of This World'\n  - Subtitle: 'Have a project in mind or just want to chat? Send a signal.'\n  - Form fields: 'Name', 'Email', and 'Message' with a submit button that updates to 'Transmitting...' when clicked.\n  - Social icon buttons: GitHub, LinkedIn, and Email ([REPLACE: yourname@example.com]).\n- Footer: Centered text: '© 2026 [REPLACE: YOUR NAME]. Crafted in Zero Gravity.'\n- Give me the complete, production-ready code with all styles and scripts in one unified file so I can run it immediately.",
-      "notes": "This is our grand finale! Make sure to put your actual email inside [REPLACE: yourname@example.com] and your name in the footer. Once the code finishes generating, move your cursor across the background: you'll see the space dust scatter away from your mouse and float right back. Click your submit button to see the 'Transmitting...' pulse!",
-      "whyItWorks": "The mouse-repelling particle canvas provides the ultimate interactive payoff that attendees love to show off. Asking for a unified, all-in-one file guarantees they can preview the final result instantly without troubleshooting broken script links or missing styles.",
-      "howNotToPrompt": "Example: 'Add a contact box at the end and make the background do something cool with the mouse cursor.'\nWhy it fails: The AI will frequently hijack your actual mouse pointer with a laggy custom graphic circle, making standard links frustrating or impossible to click.",
+      "notes": "Add your real email and name in the footer. Once generated, move your cursor across the screen to watch the particles push away!",
+      "whyItWorks": "Delivers an interactive stardust canvas payoff, includes active UI state changes ('Transmitting...'), and requests a unified file for error-free testing.",
+      "howNotToPrompt": "Example: 'Add a contact box at the end and make the background do something cool with the mouse cursor.'\nWhy it fails: AI replaces the standard OS cursor with a laggy custom graphic that breaks clickable links.",
       "status": "draft",
       "order": 4,
-      "createdAt": "2026-10-29T15:24:41.973+00:00"
+      "createdAt": "2026-10-29T15:33:40.806+00:00"
     }
   ]
 }
