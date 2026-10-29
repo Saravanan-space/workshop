@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Command Center | Workshop Live Prompts</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body class="admin-theme">
+  <!-- Authentication Overlay -->
+  <div id="authOverlay" class="auth-overlay active">
+    <div class="auth-card glass-panel">
+      <div class="auth-icon-wrap">
+        <svg class="auth-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+      </div>
+      <h2>Host Authentication</h2>
+      <p>Enter the workshop admin password to manage and deploy prompts live.</p>
+      
+      <form id="authForm" class="auth-form">
+        <div class="input-group">
+          <input type="password" id="adminPasswordInput" placeholder="Enter Admin Password" autocomplete="current-password" required autofocus />
+          <button type="button" id="togglePasswordBtn" class="btn-eye" title="Toggle visibility">👁️</button>
+        </div>
+        <div id="authError" class="auth-error hidden"></div>
+        <button type="submit" id="loginBtn" class="btn btn-primary btn-block">
+          <span>Unlock Command Center</span>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+        <div class="auth-hint">Default password is in your <code>.env</code> file (default: <code>workshop2026</code>)</div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main Admin App -->
+  <div id="adminApp" class="admin-container hidden">
+    <!-- Header Navigation -->
+    <header class="admin-header glass-panel">
+      <div class="header-left">
+        <div class="brand-badge">
+          <span class="live-beacon"></span>
+          <span class="brand-title">HOST COMMAND CENTER</span>
+        </div>
+        <h1 id="headerWorkshopTitle" class="workshop-heading" title="Click to edit workshop title">Google Antigravity workshop by T M Saravanan</h1>
+      </div>
+
+      <div class="header-center">
+        <!-- Live Status Display -->
+        <div class="metric-pill">
+          <span class="metric-dot pulse-green"></span>
+          <span class="metric-label">Online:</span>
+          <strong id="participantCount" class="metric-value">0</strong>
+        </div>
+
+        <div class="metric-pill">
+          <span class="metric-icon">🚀</span>
+          <span class="metric-label">Active:</span>
+          <strong id="activePromptTag" class="metric-value-accent">None</strong>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <!-- Theme Toggle Button -->
+        <button id="adminThemeToggleBtn" class="btn btn-outline btn-theme" title="Toggle Light / Dark mode">
+          <span id="adminThemeIcon">☀️</span>
+          <span id="adminThemeLabel">Light</span>
+        </button>
+
+        <!-- Supabase Status & Settings Button -->
+        <button id="supabaseBtn" class="btn btn-outline btn-supabase" title="Supabase Database Connection">
+          <span id="supabaseStatusDot" class="metric-dot pulse-yellow"></span>
+          <span id="supabaseStatusText">Supabase</span>
+        </button>
+
+        <button id="shareUrlBtn" class="btn btn-outline" title="View URLs to share with workshop participants">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          <span>Share URL</span>
+        </button>
+
+        <a href="/" target="_blank" class="btn btn-secondary" title="Open Participant View in new tab">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          <span>View Participant Screen</span>
+        </a>
+
+        <button id="logoutBtn" class="btn btn-ghost" title="Logout">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Admin Workspace Grid -->
+    <main class="admin-grid">
+      <!-- Left Column: Clean Prompt Creator & Broadcast -->
+      <section class="creator-column">
+        <!-- New Prompt Card -->
+        <div class="card glass-panel creator-card">
+          <div class="card-header">
+            <h2 id="formTitle">Create & Queue Prompt</h2>
+            <button id="clearFormBtn" class="btn-link" type="button">Reset</button>
+          </div>
+
+          <form id="promptForm" class="prompt-form">
+            <input type="hidden" id="editingPromptId" value="" />
+
+            <div class="form-group">
+              <label for="promptTitle">Prompt Title <span class="req">*</span></label>
+              <input type="text" id="promptTitle" required />
+            </div>
+
+            <div class="form-group">
+              <div class="label-with-meta">
+                <label for="promptContent">Prompt Text <span class="req">*</span></label>
+                <div class="content-stats">
+                  <span id="charCount">0 chars</span> • <span id="wordCount">0 words</span>
+                </div>
+              </div>
+              <textarea id="promptContent" rows="8" required></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="promptWhyItWorks">Why This Prompt Works</label>
+              <textarea id="promptWhyItWorks" rows="4"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="promptHowNotToPrompt">How Not to Prompt</label>
+              <textarea id="promptHowNotToPrompt" rows="4"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="promptNotes">Presenter's Note / Tip</label>
+              <input type="text" id="promptNotes" />
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" id="saveDraftBtn" class="btn btn-secondary">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                <span>Save to Queue</span>
+              </button>
+
+              <button type="button" id="deployImmediatelyBtn" class="btn btn-deploy-action">
+                <span class="rocket-icon">🚀</span>
+                <span id="deployBtnLabel">Upload & Deploy to Screen</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Quick Broadcast Card -->
+        <div class="card glass-panel broadcast-card">
+          <div class="card-header">
+            <h3>📢 Broadcast Alert Banner</h3>
+          </div>
+          <div class="broadcast-input-row">
+            <input type="text" id="broadcastMessageInput" />
+            <button id="sendBroadcastBtn" class="btn btn-warning">
+              <span>Send</span>
+            </button>
+            <button id="clearBroadcastBtn" class="btn btn-ghost" title="Clear alert">Clear</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Prompts Queue & Deployment Controls -->
+      <section class="queue-column">
+        <!-- Live Status Spotlight -->
+        <div class="card glass-panel spotlight-card">
+          <div class="spotlight-header">
+            <div class="spotlight-badge">
+              <span class="live-dot pulse"></span>
+              <span>LIVE ON PARTICIPANT SCREENS</span>
+            </div>
+            <button id="refreshDataBtn" class="btn-icon" title="Refresh">🔄</button>
+          </div>
+
+          <div id="livePromptSpotlight" class="spotlight-content empty-spotlight">
+            <div class="spotlight-placeholder">
+              <span class="placeholder-icon">📡</span>
+              <h4>No prompt currently live</h4>
+              <p>Click <strong>"🚀 Deploy to Live"</strong> on any prompt below to push it to attendee screens instantly.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Prompts Bank Header & Filters -->
+        <div class="bank-header-wrap">
+          <div class="bank-title-row">
+            <h2>Workshop Prompts (<span id="totalPromptsCount">0</span>)</h2>
+            <div class="bank-actions">
+              <button id="exportJsonBtn" class="btn btn-sm btn-outline">⬇️ Export</button>
+              <label class="btn btn-sm btn-outline file-label">
+                ⬆️ Import
+                <input type="file" id="importJsonInput" accept=".json" class="hidden" />
+              </label>
+            </div>
+          </div>
+
+          <div class="filters-row">
+            <div class="filter-pills">
+              <button class="filter-pill active" data-filter="all">All (<span id="filterAllCount">0</span>)</button>
+              <button class="filter-pill" data-filter="deployed">Live / Deployed (<span id="filterDeployedCount">0</span>)</button>
+              <button class="filter-pill" data-filter="draft">Drafts (<span id="filterDraftCount">0</span>)</button>
+            </div>
+            <div class="search-wrap">
+              <input type="text" id="promptSearchInput" placeholder="Filter prompts..." />
+            </div>
+          </div>
+        </div>
+
+        <!-- Prompts List -->
+        <div id="promptsList" class="prompts-list">
+          <div class="empty-list-loader">Loading prompts...</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Share URL Modal -->
+  <div id="shareModal" class="modal-overlay hidden">
+    <div class="modal-card glass-panel">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="modal-icon">🔗</span>
+          <h3>Share Workshop URL</h3>
+        </div>
+        <button id="closeShareModalBtn" class="btn-close">×</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-info">Participants simply open this URL in their browser. No login required.</p>
+
+        <div class="url-group">
+          <label>🌐 In-Person / Same Wi-Fi Link:</label>
+          <div id="localIpUrlsList" class="urls-list"></div>
+        </div>
+
+        <div class="url-group">
+          <label>💻 Localhost Link (Your Laptop):</label>
+          <div class="copy-input-row">
+            <input type="text" id="localhostUrlInput" readonly value="http://localhost:3000" />
+            <button class="btn btn-primary btn-copy" data-copy-target="localhostUrlInput">Copy</button>
+          </div>
+        </div>
+
+        <div class="tunnel-box">
+          <h4>🌍 Online / Remote Attendees?</h4>
+          <p>Run this in terminal to get an instant public link:</p>
+          <div class="copy-input-row">
+            <input type="text" readonly value="npx localtunnel --port 3000" id="tunnelCmd" />
+            <button class="btn btn-secondary btn-copy" data-copy-target="tunnelCmd">Copy Command</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Supabase Database Settings Modal -->
+  <div id="supabaseModal" class="modal-overlay hidden">
+    <div class="modal-card glass-panel" style="max-width: 600px;">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="modal-icon">⚡</span>
+          <h3>Supabase Database Integration</h3>
+        </div>
+        <button id="closeSupabaseModalBtn" class="btn-close">×</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-info">All prompts and live updates are connected and stored directly in your Supabase PostgreSQL cloud database.</p>
+
+        <div class="url-group">
+          <label>Project Endpoint:</label>
+          <input type="text" id="supabaseUrlDisplay" readonly value="https://osifexxyqaadkwqrmgds.supabase.co" />
+        </div>
+
+        <div class="url-group" style="margin-top: 14px;">
+          <label>Supabase API Key (anon public or service_role):</label>
+          <div class="copy-input-row">
+            <input type="password" id="supabaseApiKeyInput" placeholder="Paste your Supabase API Key here..." />
+            <button type="button" id="saveSupabaseKeyBtn" class="btn btn-primary">Save & Connect</button>
+          </div>
+          <small style="display:block; margin-top: 6px; color: var(--text-muted, #94a3b8); font-size: 12px;">
+            Find in Supabase Dashboard &rarr; Project Settings &rarr; API &rarr; Project API keys (<code>anon public</code> or <code>service_role</code>).
+          </small>
+        </div>
+
+        <div id="supabaseStatusCard" style="margin-top: 16px; padding: 14px; background: rgba(0,0,0,0.25); border: 1px solid var(--border-glass, rgba(255,255,255,0.1)); border-radius: 8px; font-size: 13px;">
+          <div id="supabaseStatusMessage">Checking Supabase connection...</div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px;">
+          <button id="btnSupabasePush" class="btn btn-outline" type="button" title="Upload all prompts from this website to Supabase">
+            ⬆️ Push All to Supabase
+          </button>
+          <button id="btnSupabasePull" class="btn btn-outline" type="button" title="Fetch all prompts from Supabase to this website">
+            ⬇️ Pull From Supabase
+          </button>
+        </div>
+
+        <div class="tunnel-box" style="margin-top: 16px;">
+          <h4>📋 First Time Setup</h4>
+          <p style="font-size: 12px; margin-bottom: 6px;">Open the <code>supabase-schema.sql</code> file included in this project, copy the SQL, and run it in your Supabase Dashboard <strong>SQL Editor</strong> to ensure tables and permissions are ready.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script src="admin.js"></script>
+</body>
+</html>

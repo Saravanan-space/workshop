@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Live Workshop Prompts</title>
+  <meta name="description" content="Clean split-screen workshop prompt viewer with 1-click copy, prompt mechanics, and anti-patterns.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="index.css">
+</head>
+<body class="single-view-theme">
+  <!-- Top Navigation Bar -->
+  <header class="app-header">
+    <div class="header-left">
+      <span class="live-dot pulse" title="Live sync active"></span>
+      <h1 class="workshop-name" id="workshopTitle">Google Antigravity workshop by T M Saravanan</h1>
+      <span id="liveStatusPill" class="hidden"><span id="liveStatusText"></span></span>
+    </div>
+
+    <div class="header-right">
+      <!-- Theme Toggle Switch -->
+      <button id="themeToggleBtn" class="theme-toggle-btn" title="Toggle Light / Dark mode" aria-label="Toggle theme">
+        <span class="theme-icon" id="themeIcon">☀️</span>
+        <span class="theme-label" id="themeLabel">Light</span>
+      </button>
+
+      <!-- Sound Toggle -->
+      <button id="soundToggleBtn" class="icon-toggle-btn" title="Toggle audio chime on new prompts">
+        <span id="soundIcon">🔔</span>
+        <span class="btn-caption">Audio: ON</span>
+      </button>
+
+      <!-- History Drawer -->
+      <button id="openHistoryBtn" class="history-toggle-btn" title="View prompt history">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>History (<span id="historyCount">0</span>)</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Live Broadcast Alert Banner (if host pushes announcement) -->
+  <div id="broadcastBanner" class="broadcast-banner hidden">
+    <div class="broadcast-inner">
+      <span class="broadcast-icon">📢</span>
+      <div class="broadcast-message" id="broadcastMessage"></div>
+      <button id="dismissBroadcastBtn" class="btn-dismiss" title="Dismiss">×</button>
+    </div>
+  </div>
+
+  <!-- Stage Sub-Header (Matches Image 1 & 2 typography) -->
+  <div class="stage-sub-header">
+    <div class="stage-title-wrap">
+      <span class="stage-step-pill" id="stageStepPill">LIVE PROMPT</span>
+      <h2 class="active-prompt-heading" id="promptTitle">Loading Workshop Prompt...</h2>
+    </div>
+    <div class="stats-badge" id="promptWordStats">0 chars • 0 words</div>
+  </div>
+
+  <!-- Main Viewport Canvas (100% single view without page scrolling) -->
+  <main class="single-view-stage">
+    <!-- Loading State -->
+    <div class="state-overlay neo-card" id="loadingState">
+      <div class="spinner"></div>
+      <p>Connecting to presenter...</p>
+    </div>
+
+    <!-- No Prompt Deployed State -->
+    <div class="state-overlay neo-card hidden" id="emptyState">
+      <div class="empty-icon-box">⏳</div>
+      <h2>Waiting for Host to Deploy Prompt</h2>
+      <p>The prompt will appear on your screen immediately when deployed by the host.</p>
+    </div>
+
+    <!-- SPLIT SCREEN WORKSPACE: Left = Main Prompt, Right = 2 Cards -->
+    <div class="prompt-workspace-split hidden" id="promptView">
+      <!-- LEFT PANE: MAIN PROMPT & 1-CLICK COPY -->
+      <section class="split-left-pane neo-card">
+        <div class="pane-header">
+          <div class="prompt-category-badge">
+            <span class="badge-amber">PROMPT FOR WORKSHOP</span>
+          </div>
+
+          <!-- PRIMARY 1-CLICK COPY BUTTON -->
+          <button id="copyPromptBtn" class="btn-copy-prominent" title="Click or press Ctrl+C to copy">
+            <span class="copy-icon" id="copyIcon">📋</span>
+            <span class="copy-label" id="copyText">COPY PROMPT</span>
+            <span class="kbd-hint">Ctrl + C</span>
+          </button>
+        </div>
+
+        <!-- Main Prompt Text Viewport -->
+        <div class="prompt-code-container">
+          <pre class="prompt-pre"><code id="promptCode">Loading prompt...</code></pre>
+        </div>
+
+        <!-- Presenter Note Bar (Optional bottom note) -->
+        <div class="presenter-note-bar hidden" id="presenterTipBox">
+          <span class="note-icon">💡</span>
+          <span class="note-label">Host Tip:</span>
+          <span class="note-text" id="presenterTipText"></span>
+        </div>
+      </section>
+
+      <!-- RIGHT PANE: 2 STACKED EDUCATIONAL CARDS -->
+      <aside class="split-right-pane">
+        <!-- 1st UPPER SECTION: Why this prompt works -->
+        <section class="why-it-works-card neo-card">
+          <div class="card-icon-header works-header">
+            <div class="square-icon-box icon-green">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <h3 class="card-title-works">Why This Structure Works</h3>
+          </div>
+          <div class="section-scroll-content works-content" id="whyItWorksContent">
+            <!-- Rendered dynamically -->
+          </div>
+        </section>
+
+        <!-- 2nd LOWER SECTION: How not to prompt -->
+        <section class="how-not-to-prompt-card neo-card">
+          <div class="card-icon-header not-header">
+            <div class="square-icon-box icon-red">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+            </div>
+            <h3 class="card-title-not">How NOT to Prompt</h3>
+          </div>
+          <div class="section-scroll-content not-content" id="howNotToPromptContent">
+            <!-- Rendered dynamically -->
+          </div>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <!-- Sliding History Drawer (Overlay) -->
+  <div id="historyOverlay" class="history-overlay hidden">
+    <div class="history-drawer neo-card">
+      <div class="drawer-header">
+        <div class="drawer-title-group">
+          <span class="drawer-icon">📚</span>
+          <h3>Prompt History</h3>
+        </div>
+        <button id="closeHistoryBtn" class="btn-close-drawer">×</button>
+      </div>
+      <p class="drawer-subtitle">Missed an earlier prompt? All previously deployed prompts from this session are saved here:</p>
+
+      <div class="history-scroll-list" id="historyList">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="participantToast" class="participant-toast hidden"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
