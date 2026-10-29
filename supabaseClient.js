@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
 
 let supabase = null;
@@ -49,7 +50,7 @@ function toDbPrompt(p) {
     id: p.id,
     title: p.title || '',
     content: p.content || '',
-    notes: p.notes || '',
+    notes: p.notes || p.presenterTip || '',
     why_it_works: p.whyItWorks || p.why_it_works || '',
     how_not_to_prompt: p.howNotToPrompt || p.how_not_to_prompt || '',
     status: p.status || 'draft',
@@ -66,6 +67,7 @@ function fromDbPrompt(row) {
     title: row.title,
     content: row.content,
     notes: row.notes || '',
+    presenterTip: row.notes || '',
     whyItWorks: row.why_it_works ?? row.whyItWorks ?? '',
     howNotToPrompt: row.how_not_to_prompt ?? row.howNotToPrompt ?? '',
     status: row.status || 'draft',

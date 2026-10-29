@@ -1,52 +1,59 @@
 {
   "workshopTitle": "Google Antigravity workshop by T M Saravanan",
-  "activePromptId": "p-1793288020804",
+  "activePromptId": "p-mod-1",
   "broadcast": null,
   "prompts": [
     {
-      "id": "p-1793288020804",
-      "title": "Floating Header & Intro",
-      "content": "Act as an expert website designer and creative frontend developer. Build the opening 'Hero' screen and navigation bar for my personal portfolio website using HTML, CSS, and lightweight JavaScript.\n\n- Theme & Style: 'Anti-Gravity / Zero Gravity'. Use a dark space background (obsidian slate #0b0f19) with soft floating glowing light orbs drifting gently behind the text.\n- Header Navigation: A sleek, floating frosted-glass navbar at the top that stays visible as I scroll, with a blur effect and links: 'About', 'Projects', 'Skills', and 'Contact'.\n- Hero Content:\n  - Small pill badge at top: '🟢 Available for New Projects'\n  - Big Headline: 'Hi, I am [REPLACE: YOUR NAME] — Defying Gravity Through Code.'\n  - Short Bio: '[REPLACE: YOUR ROLE] building sleek, interactive digital experiences.'\n  - Two Buttons: A primary glowing button 'View My Work' that floats upward slightly on hover, and a secondary outline button 'Say Hello'.\n- Make sure it fits all laptop screens and mobile phones smoothly.",
-      "notes": "Replace [REPLACE: YOUR NAME] and [REPLACE: YOUR ROLE] with your own details before sending. Keep the color code #0b0f19 as is.",
-      "whyItWorks": "Defines an exact visual theme, color palette, and layout hierarchy so the AI delivers structured components rather than a generic text block.",
-      "howNotToPrompt": "Example: 'Make a cool hero page for my website. My name is Alex and I want it to look futuristic with space floating stuff.'\nWhy it fails: 'Cool' is subjective. The AI guesses blindly, resulting in clashing colors, unstyled buttons, and broken mobile layouts.",
+      "id": "p-mod-1",
+      "title": "Module 1: Floating Header & Terminal Intro",
+      "content": "Act as a creative UI/UX designer and staff frontend engineer. Using Antigravity IDE, build the hero screen and navigation bar for my personal developer portfolio using React and Tailwind CSS.\n\n- Theme & Aesthetic: 'Cyber-Emerald / High-Tech Monolith' (Avoid generic blue gradients). Use an ultra-deep matte carbon background (#0d1117) with subtle neon emerald (#10b981) and radioactive lime (#84cc16) micro-accents.\n- Interactive Ambient Background: An interactive HTML5 canvas showing an animated matrix-dot grid that slightly ripples or shifts perspective when the mouse hovers over it.\n- Navigation: Sleek floating navbar styled like an IDE status bar with a soft glassmorphism blur (backdrop-blur-md), displaying my logo and links: 'Overview', 'Artifacts', 'Capabilities', and 'Signal'.\n- Hero Content:\n  - Status Pill: An animated radar-blinking dot: '🟢 Agent Online // Ready for Deployment'\n  - Headline: 'Hi, I am [REPLACE: YOUR NAME] — Architecting Autonomous Code.'\n  - Sub-headline: '[REPLACE: YOUR ROLE] specializing in full-stack interfaces, agentic systems, and high-performance applications.'\n  - Action Buttons: Primary button 'Launch Artifacts' with a glowing emerald scanline hover effect, and a ghost button 'Read Docs'.\n- Ensure the layout is responsive across desktop and mobile screens.",
+      "notes": "In Antigravity IDE, hit the prompt input and swap [REPLACE: YOUR NAME] and [REPLACE: YOUR ROLE] with your info. Leave the hex codes as they are.",
+      "presenterTip": "In Antigravity IDE, hit the prompt input and swap [REPLACE: YOUR NAME] and [REPLACE: YOUR ROLE] with your info. Leave the hex codes as they are.",
+      "whyItWorks": "Replaces generic blue palettes with an ultra-tech emerald/carbon aesthetic suited for Antigravity IDE. It defines exact typography, interactive canvas requirements, and clear layout elements so the agent outputs working code immediately.",
+      "howNotToPrompt": "Example: 'Make an intro section for my portfolio in Antigravity IDE with cool tech colors and a nav bar.'\nWhy it fails: 'Cool tech colors' usually defaults right back to generic blue/purple neon, and missing layout specs results in broken button alignments.",
       "status": "deployed",
       "order": 1,
-      "createdAt": "2026-10-29T15:33:40.804+00:00",
-      "deployedAt": "2026-10-29T15:33:40.806+00:00"
+      "createdAt": "2026-10-29T17:45:26.405Z",
+      "deployedAt": "2026-10-29T17:45:26.405Z"
     },
     {
-      "id": "p-1793288020807",
-      "title": "Floating Project Cards",
-      "content": "Keep the same dark style, fonts, and colors from before. Now add a 'Featured Projects' section directly below the Hero section.\n\n- Layout: Display 3 project cards side-by-side in a responsive grid.\n- Anti-Gravity Floating Effect:\n  - Design the cards as dark, semi-transparent glass panels.\n  - When I hover my mouse over a card, it should smoothly lift up slightly (translateY(-8px)), cast a soft colored glow around its edges, and have a subtle 3D tilt effect following the mouse.\n- Card Details:\n  - Project 1: [REPLACE: Project One Name] — A 2-sentence description, tech tags, and two buttons: 'Live Demo' and 'Source Code'.\n  - Project 2: [REPLACE: Project Two Name] — A 2-sentence description and tech tags.\n  - Project 3: [REPLACE: Project Three Name] — A 2-sentence description and tech tags.\n- Add a simple row of category filters above the cards ('All', 'Apps', 'Designs') that highlights when clicked.",
-      "notes": "Fill in your real project names or use ideas like 'Task App' or 'Drone Dashboard'. Hover over cards to check the 3D lift.",
-      "whyItWorks": "Maintains design continuity with previous sections, defines uniform card data, and uses precise movement rules (translateY(-8px)) to avoid messy animations.",
-      "howNotToPrompt": "Example: 'Now put my projects under it and make them move when I touch them with the mouse.'\nWhy it fails: Missing layout structure and motion boundaries, causing jumpy animations and uneven card heights.",
+      "id": "p-mod-2",
+      "title": "Module 2: Interactive Mission Artifacts",
+      "content": "Keep the existing carbon and neon-emerald aesthetic. Directly beneath the Hero, add an 'Artifacts & Builds' showcase section.\n\n- Layout: Responsive 3-column card grid.\n- Visual & Interactive Card Physics:\n  - Styled like cybernetic hardware panels: dark carbon backing, subtle 1px emerald border (border-emerald-500/20), and an interactive 3D perspective tilt that tracks mouse position.\n  - On hover: The card casts an intense emerald corner flare, lifts slightly, and displays an animated scanline sweeping across the card background.\n- Card Content:\n  - Artifact 1: [REPLACE: Project One Name] — 2-sentence breakdown, tech stack badges (e.g., 'TypeScript', 'Antigravity API'), and actionable buttons: 'Inspect Code' and 'Live Preview'.\n  - Artifact 2: [REPLACE: Project Two Name] — 2-sentence breakdown and tech stack badges.\n  - Artifact 3: [REPLACE: Project Three Name] — 2-sentence breakdown and tech stack badges.\n- Add an interactive category filter bar ('All', 'Autonomous Systems', 'Frontends') that updates the grid with a smooth fade-and-slide transition.",
+      "notes": "Replace the 3 artifact names with your real projects or hackathon ideas. Once generated, move your cursor over each card to test the 3D tilt and scanline flare.",
+      "presenterTip": "Replace the 3 artifact names with your real projects or hackathon ideas. Once generated, move your cursor over each card to test the 3D tilt and scanline flare.",
+      "whyItWorks": "Enforces visual continuity so the agent doesn't rewrite existing styles. The 3D tilt and scanline hover effects give the cards a tactile, hardware-console feel without relying on clunky third-party libraries.",
+      "howNotToPrompt": "Example: 'Add 3 project cards that look like high-tech cards and tilt when I touch them.'\nWhy it fails: It lacks data structure and motion parameters, causing the agent to write buggy mouse-tracking code that stutters or miscalculates offsets.",
       "status": "draft",
       "order": 2,
-      "createdAt": "2026-10-29T15:33:40.806+00:00"
+      "createdAt": "2026-10-29T17:45:26.405Z",
+      "deployedAt": null
     },
     {
-      "id": "p-1793288020808",
-      "title": "Drifting Skills & Experience",
-      "content": "Add an interactive 'Skills & Experience' section below the projects, continuing our anti-gravity theme.\n\n- Floating Skills Badges:\n  - Show my skills as rounded pill badges (e.g., JavaScript, Python, UI/UX Design, Prompt Engineering, Git, CSS Animation).\n  - Give each skill badge a gentle, slow bobbing animation (as if floating in zero gravity) with each pill moving at a slightly different speed or delay so it looks natural.\n  - When hovering over any skill pill, it stops floating, glows brighter, and scales up slightly.\n- Journey Timeline:\n  - Next to or below the skills, add a simple vertical timeline showing 3 career/education milestones with a glowing accent line and circular dots:\n    - 2026: [REPLACE: Recent Milestone]\n    - 2025: [REPLACE: Previous Milestone]\n    - 2024: [REPLACE: Starting Milestone]\n- Ensure all animations run smoothly without slowing down the browser.",
-      "notes": "Update the 3 milestones with your own education or achievements. If the badges float too fast, tell AI: 'Make floating speed 50% slower.'",
-      "whyItWorks": "Staggered delays make floating elements feel natural instead of robotic, while hover pauses keep text easy to read.",
-      "howNotToPrompt": "Example: 'Show my skills floating around in space and add a timeline.'\nWhy it fails: AI creates chaotic scripts that push tags off-screen or cover up text.",
+      "id": "p-mod-3",
+      "title": "Module 3: Neural Capabilities & Milestones",
+      "content": "Append an interactive 'Capabilities & Execution History' section below the artifacts, matching the cyber-emerald theme.\n\n- Interactive Skill Matrix:\n  - Render skills as interactive cybernetic tags (e.g., Python, Rust, Prompt Architecture, React, Agent Workflows, Tailwind CSS).\n  - Micro-Interaction: Each tag has a faint pulse animation. Hovering over a tag triggers a rapid text-scramble/decoding glitch effect before settling on the clean word, accompanied by an emerald border glow.\n- Deployment Log (Timeline):\n  - Vertical circuit-trace timeline adjacent to the skill matrix, connected by an animated electric pulse running down the line.\n  - 3 milestone nodes:\n    - 2026: [REPLACE: Recent Milestone, e.g., Deployed AI Multi-Agent System]\n    - 2025: [REPLACE: Previous Milestone, e.g., Senior Engineering Lead]\n    - 2024: [REPLACE: Starting Milestone, e.g., Initiated Deep Tech Architecture]\n- Keep animations GPU-accelerated and smooth.",
+      "notes": "Customize the 3 milestone dates and achievements with your background. Hover over the skill tags to watch the hacker decode effect happen in real-time.",
+      "presenterTip": "Customize the 3 milestone dates and achievements with your background. Hover over the skill tags to watch the hacker decode effect happen in real-time.",
+      "whyItWorks": "The text-scramble/decoding glitch effect adds an authentic developer/hacker interaction that avoids generic bouncing badges. Specifying GPU acceleration keeps the Antigravity preview snappy and lightweight.",
+      "howNotToPrompt": "Example: 'Put my skills and a timeline on the page with hacker animations.'\nWhy it fails: 'Hacker animations' often makes the agent generate aggressive, unreadable green terminal spam that obscures text and slows down browser rendering.",
       "status": "draft",
       "order": 3,
-      "createdAt": "2026-10-29T15:33:40.806+00:00"
+      "createdAt": "2026-10-29T17:45:26.405Z",
+      "deployedAt": null
     },
     {
-      "id": "p-1793288020809",
-      "title": "Space Dust & Contact Form",
-      "content": "Complete the portfolio by adding a final 'Contact' section, interactive background particles, and a clean footer.\n\n- Interactive Mouse Feature: Create a subtle particle background using an HTML5 canvas. Tiny stardust particles should slowly drift and gently scatter away whenever the mouse moves near them, then slowly float back.\n- Contact Card:\n  - Headline: 'Let's Build Something Out of This World'\n  - Subtitle: 'Have a project in mind or just want to chat? Send a signal.'\n  - Form fields: 'Name', 'Email', and 'Message' with a submit button that updates to 'Transmitting...' when clicked.\n  - Social icon buttons: GitHub, LinkedIn, and Email ([REPLACE: yourname@example.com]).\n- Footer: Centered text: '© 2026 [REPLACE: YOUR NAME]. Crafted in Zero Gravity.'\n- Give me the complete, production-ready code with all styles and scripts in one unified file so I can run it immediately.",
-      "notes": "Add your real email and name in the footer. Once generated, move your cursor across the screen to watch the particles push away!",
-      "whyItWorks": "Delivers an interactive stardust canvas payoff, includes active UI state changes ('Transmitting...'), and requests a unified file for error-free testing.",
-      "howNotToPrompt": "Example: 'Add a contact box at the end and make the background do something cool with the mouse cursor.'\nWhy it fails: AI replaces the standard OS cursor with a laggy custom graphic that breaks clickable links.",
+      "id": "p-mod-4",
+      "title": "Module 4: Signal Transmission & Reactive Canvas",
+      "content": "Finalize the portfolio by adding a 'Transmit Signal' contact console and overall interactive polish.\n\n- Contact Console:\n  - Header: 'Initiate Secure Transmission'\n  - Subtext: 'Route a direct packet or proposal to my frequency.'\n  - Form inputs: 'Callsign / Name', 'Return Signal / Email', and 'Encrypted Payload / Message'.\n  - Interactive Action Button: 'Transmit Message'. On click, show an animated emerald progress bar inside the button that transitions to 'Packet Delivered! // 200 OK'.\n  - Quick-connect buttons with magnetic pull hover effect: GitHub, LinkedIn, and Email ([REPLACE: yourname@example.com]).\n- Global Cursor Magnet Effect: Add a subtle custom neon-ring cursor follower with a magnetic snap effect when hovering near buttons or cards.\n- Footer: Minimal terminal line: '© 2026 [REPLACE: YOUR NAME] // Built with Antigravity IDE.'\n- Deliver the complete, runnable code file with zero missing dependencies.",
+      "notes": "Replace [REPLACE: yourname@example.com] and your footer name. After Antigravity finishes generating, test typing in the form and clicking 'Transmit' to see the status change!",
+      "presenterTip": "Replace [REPLACE: yourname@example.com] and your footer name. After Antigravity finishes generating, test typing in the form and clicking 'Transmit' to see the status change!",
+      "whyItWorks": "Gives the contact form unique sci-fi/terminal themed copy while maintaining functional UX feedback ('Packet Delivered! // 200 OK'). Requesting a complete runnable file ensures Antigravity IDE compiles the final app seamlessly.",
+      "howNotToPrompt": "Example: 'Finish the portfolio with a contact box and footer and make the mouse follow something.'\nWhy it fails: Vague cursor prompts often result in the AI completely disabling default clicks, making links and buttons impossible to activate.",
       "status": "draft",
       "order": 4,
-      "createdAt": "2026-10-29T15:33:40.806+00:00"
+      "createdAt": "2026-10-29T17:45:26.405Z",
+      "deployedAt": null
     }
   ]
 }

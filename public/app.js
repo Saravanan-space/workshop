@@ -298,8 +298,9 @@ function renderActivePrompt(prompt, shouldAnimate = true) {
   promptWordStats.textContent = `${chars} chars • ${words} words`;
 
   // Presenter Note (Host Tip)
-  if (prompt.notes && prompt.notes.trim()) {
-    presenterTipText.textContent = prompt.notes;
+  const tipText = (prompt.presenterTip || prompt.notes || '').trim();
+  if (tipText) {
+    presenterTipText.textContent = tipText;
     presenterTipBox.classList.remove('hidden');
   } else {
     presenterTipBox.classList.add('hidden');
