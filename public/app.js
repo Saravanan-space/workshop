@@ -52,6 +52,13 @@ const dismissBroadcastBtn = document.getElementById('dismissBroadcastBtn');
 // Toast
 const participantToast = document.getElementById('participantToast');
 
+// Screen Prompt Removal Elements
+const removePromptUserBtn = document.getElementById('removePromptUserBtn');
+const restorePromptBtn = document.getElementById('restorePromptBtn');
+const emptyStateHeading = document.getElementById('emptyStateHeading');
+const emptyStateText = document.getElementById('emptyStateText');
+let userDismissedPrompt = false;
+
 // ---------------- INITIALIZATION ----------------
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -127,6 +134,16 @@ function setupEventListeners() {
     broadcastBanner.classList.add('hidden');
   });
 
+  // Remove prompt from participant screen
+  if (removePromptUserBtn) {
+    removePromptUserBtn.addEventListener('click', handleUserRemovePrompt);
+  }
+
+  // Restore prompt to screen
+  if (restorePromptBtn) {
+    restorePromptBtn.addEventListener('click', handleRestorePrompt);
+  }
+
   // Global Keyboard Shortcut: Ctrl+C / Cmd+C copies active prompt if nothing is selected
   window.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
@@ -199,6 +216,7 @@ function initSSE() {
     try {
       const data = JSON.parse(e.data);
       if (data.prompt) {
+        userDismissedPrompt = false;
         const isNew = !currentActivePrompt || currentActivePrompt.id !== data.prompt.id;
         renderActivePrompt(data.prompt, isNew);
 
@@ -212,10 +230,16 @@ function initSSE() {
           playChime();
           showToast(`🚀 New Prompt: ${data.prompt.title}`);
         }
+      } else {
+        clearActivePrompt();
       }
     } catch (err) {
       console.error('Error handling prompt event:', err);
     }
+  });
+
+  eventSource.addEventListener('prompt:cleared', () => {
+    clearActivePrompt();
   });
 
   eventSource.addEventListener('broadcast:alert', (e) => {
@@ -250,7 +274,7 @@ function initSSE() {
       if (!res.ok) return;
       const data = await res.json();
       if (data.activePrompt) {
-        if (!currentActivePrompt || currentActivePrompt.id !== data.activePrompt.id || currentActivePrompt.content !== data.activePrompt.content) {
+        if (!userDismissedPrompt && (!currentActivePrompt || currentActivePrompt.id !== data.activePrompt.id || currentActivePrompt.content !== data.activePrompt.content)) {
           const isNew = !currentActivePrompt || currentActivePrompt.id !== data.activePrompt.id;
           renderActivePrompt(data.activePrompt, isNew);
           if (isNew && audioAlertsEnabled) {
@@ -258,6 +282,8 @@ function initSSE() {
             showToast(`🚀 New Prompt: ${data.activePrompt.title}`);
           }
         }
+      } else if (currentActivePrompt && !userDismissedPrompt) {
+        clearActivePrompt();
       }
       if (data.history && data.history.length !== promptHistory.length) {
         promptHistory = data.history;
@@ -277,17 +303,63 @@ function initSSE() {
   }, 3500);
 }
 
-// ---------------- RENDERING ----------------
+// ---------------- RENDERING & PROMPT CLEAR ----------------
+
+function clearActivePrompt() {
+  currentActivePrompt = null;
+  userDismissedPrompt = false;
+
+  loadingState.classList.add('hidden');
+  promptView.classList.add('hidden');
+  emptyState.classList.remove('hidden');
+
+  if (emptyStateHeading) emptyStateHeading.textContent = 'Waiting for Host to Deploy Prompt';
+  if (emptyStateText) emptyStateText.textContent = 'The prompt will appear on your screen immediately when deployed by the host.';
+  if (restorePromptBtn) restorePromptBtn.classList.add('hidden');
+
+  promptTitle.textContent = 'Waiting for Workshop Prompt...';
+  stageStepPill.textContent = 'STANDBY';
+  promptWordStats.textContent = '0 chars • 0 words';
+}
+
+function handleUserRemovePrompt() {
+  userDismissedPrompt = true;
+  loadingState.classList.add('hidden');
+  promptView.classList.add('hidden');
+  emptyState.classList.remove('hidden');
+
+  if (emptyStateHeading) emptyStateHeading.textContent = 'Prompt Removed from Screen';
+  if (emptyStateText) emptyStateText.textContent = 'You removed this prompt from your screen. You can restore it anytime or view past prompts in History.';
+  if (restorePromptBtn) restorePromptBtn.classList.remove('hidden');
+
+  promptTitle.textContent = 'Prompt Dismissed';
+  stageStepPill.textContent = 'STANDBY';
+  promptWordStats.textContent = '0 chars • 0 words';
+
+  showToast('Prompt removed from your screen');
+}
+
+function handleRestorePrompt() {
+  userDismissedPrompt = false;
+  if (currentActivePrompt) {
+    renderActivePrompt(currentActivePrompt, false);
+    showToast('Prompt restored to screen');
+  } else {
+    showToast('Waiting for host to deploy prompt', 'warning');
+  }
+}
 
 function renderActivePrompt(prompt, shouldAnimate = true) {
   currentActivePrompt = prompt;
+  userDismissedPrompt = false;
 
   loadingState.classList.add('hidden');
   emptyState.classList.add('hidden');
+  if (restorePromptBtn) restorePromptBtn.classList.add('hidden');
   promptView.classList.remove('hidden');
 
-  // Subheader: remove "Module" prefix from heading
-  const cleanTitle = (prompt.title || '').replace(/^module\s*\d*\s*[:\-–—]\s*/i, '').trim();
+  // Subheader: remove "Module" or "Prompt" prefix from heading
+  const cleanTitle = (prompt.title || '').replace(/^(?:module|prompt)\s*\d*\s*[:\-–—]\s*/i, '').trim();
   promptTitle.textContent = cleanTitle || prompt.title;
   stageStepPill.textContent = prompt.order ? `STEP ${prompt.order}` : 'LIVE PROMPT';
 
@@ -421,7 +493,7 @@ function renderHistory() {
   historyList.innerHTML = reversed.map((p, idx) => `
     <div class="history-item-card">
       <div class="history-item-top">
-        <span class="history-item-title">#${reversed.length - idx}: ${escapeHtml((p.title || '').replace(/^module\s*\d*\s*[:\-–—]\s*/i, '').trim())}</span>
+        <span class="history-item-title">#${reversed.length - idx}: ${escapeHtml((p.title || '').replace(/^(?:module|prompt)\s*\d*\s*[:\-–—]\s*/i, '').trim())}</span>
         <button class="btn-copy-mini" onclick="copyHistoryItem('${p.id}', this)">Copy</button>
       </div>
       <div class="history-item-preview">${escapeHtml(p.content)}</div>

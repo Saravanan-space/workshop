@@ -55,6 +55,7 @@ const clearBroadcastBtn = document.getElementById('clearBroadcastBtn');
 
 // Spotlight & Bank elements
 const livePromptSpotlight = document.getElementById('livePromptSpotlight');
+const removeLivePromptBtn = document.getElementById('removeLivePromptBtn');
 const refreshDataBtn = document.getElementById('refreshDataBtn');
 const promptsList = document.getElementById('promptsList');
 const promptSearchInput = document.getElementById('promptSearchInput');
@@ -151,6 +152,9 @@ function setupEventListeners() {
   });
   promptSearchInput.addEventListener('input', renderPromptsList);
   refreshDataBtn.addEventListener('click', fetchWorkshopData);
+  if (removeLivePromptBtn) {
+    removeLivePromptBtn.addEventListener('click', removeActivePromptFromScreens);
+  }
 
   // Export / Import
   exportJsonBtn.addEventListener('click', handleExportJson);
@@ -332,9 +336,16 @@ function setupRealtimeStream() {
           p.status = 'deployed';
           p.deployedAt = payload.prompt.deployedAt;
         }
+      } else {
+        currentData.activePromptId = null;
       }
       updateUI();
     } catch {}
+  });
+
+  eventSource.addEventListener('prompt:cleared', () => {
+    currentData.activePromptId = null;
+    updateUI();
   });
 
   eventSource.onerror = () => {
@@ -353,9 +364,11 @@ function updateUI() {
   if (activePrompt) {
     activePromptTag.textContent = activePrompt.title;
     renderSpotlight(activePrompt);
+    if (removeLivePromptBtn) removeLivePromptBtn.classList.remove('hidden');
   } else {
     activePromptTag.textContent = 'None';
     renderEmptySpotlight();
+    if (removeLivePromptBtn) removeLivePromptBtn.classList.add('hidden');
   }
 
   // Update counts
@@ -377,6 +390,9 @@ function renderSpotlight(prompt) {
     <div class="spotlight-active-box">
       <div class="spotlight-title-row">
         <h3 class="spotlight-title">${escapeHtml(prompt.title)}</h3>
+        <button class="btn btn-sm btn-danger-outline" onclick="removeActivePromptFromScreens()" title="Remove this prompt from participant screens">
+          <span>⏹️ Remove from Screen</span>
+        </button>
       </div>
       <div class="spotlight-preview">${escapeHtml(prompt.content)}</div>
       ${prompt.notes ? `<div class="spotlight-tip"><strong>💡 Note:</strong> ${escapeHtml(prompt.notes)}</div>` : ''}
@@ -440,9 +456,14 @@ function renderPromptsList() {
 
           <div class="prompt-deploy-control">
             ${isLive ? `
-              <span class="btn-deployed-active">
-                <span>📡 Live on Screens</span>
-              </span>
+              <div class="live-control-group">
+                <span class="btn-deployed-active">
+                  <span>📡 Live on Screens</span>
+                </span>
+                <button class="btn-undeploy-single" onclick="removeActivePromptFromScreens()" title="Remove this prompt from participant screens">
+                  <span>⏹️ Remove</span>
+                </button>
+              </div>
             ` : `
               <button class="btn-deploy-single" onclick="deployPrompt('${p.id}')">
                 <span>🚀 Deploy to Live</span>
@@ -467,6 +488,7 @@ function renderPromptsList() {
           <div class="item-actions-row">
             <button class="btn btn-sm btn-ghost" onclick="copyPromptText('${p.id}')" title="Copy prompt text">📋 Copy</button>
             <button class="btn btn-sm btn-ghost" onclick="editPrompt('${p.id}')" title="Edit prompt">✏️ Edit</button>
+            ${isDeployed ? `<button class="btn btn-sm btn-ghost" onclick="undeployPrompt('${p.id}')" title="Move to draft and undeploy">↩️ To Draft</button>` : ''}
             <button class="btn btn-sm btn-ghost" onclick="deletePrompt('${p.id}')" title="Delete prompt" style="color: #f87171;">🗑️ Delete</button>
           </div>
         </div>
@@ -505,6 +527,61 @@ async function deployPrompt(id) {
   }
 }
 window.deployPrompt = deployPrompt;
+
+async function removeActivePromptFromScreens() {
+  try {
+    const res = await fetch('/api/admin/prompts/clear-active', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-password': adminPassword
+      }
+    });
+
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showToast('⏹️ Prompt removed from participant screens', 'success');
+      currentData.activePromptId = null;
+      updateUI();
+    } else {
+      showToast(data.error || 'Failed to remove prompt from screens', 'error');
+    }
+  } catch {
+    showToast('Network error removing prompt from screens', 'error');
+  }
+}
+window.removeActivePromptFromScreens = removeActivePromptFromScreens;
+
+async function undeployPrompt(id) {
+  try {
+    const res = await fetch(`/api/admin/prompts/${id}/undeploy`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-password': adminPassword
+      }
+    });
+
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showToast(`Prompt "${data.prompt.title}" moved to draft`, 'success');
+      const target = currentData.prompts.find(p => p.id === id);
+      if (target) {
+        target.status = 'draft';
+        target.deployedAt = null;
+      }
+      if (currentData.activePromptId === id) {
+        currentData.activePromptId = null;
+      }
+      updateUI();
+    } else {
+      showToast(data.error || 'Failed to move prompt to draft', 'error');
+    }
+  } catch {
+    showToast('Network error undeploying prompt', 'error');
+  }
+}
+window.undeployPrompt = undeployPrompt;
 
 async function handleSavePrompt(deployImmediately = false) {
   const title = promptTitle.value.trim();

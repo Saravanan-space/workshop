@@ -124,11 +124,14 @@ app.get('/api/workshop', async (req, res) => {
     .filter(p => p.status === 'deployed')
     .sort((a, b) => (a.order || 0) - (b.order || 0));
 
-  const activePrompt = deployedPrompts.find(p => p.id === state.activePromptId) || deployedPrompts[deployedPrompts.length - 1] || null;
+  const activePrompt = (state.activePromptId && state.activePromptId !== 'null' && state.activePromptId !== 'none')
+    ? (deployedPrompts.find(p => p.id === state.activePromptId) || null)
+    : null;
 
   res.json({
     workshopTitle: state.workshopTitle,
     activePrompt,
+    activePromptId: activePrompt ? activePrompt.id : null,
     deployedCount: deployedPrompts.length,
     history: deployedPrompts,
     broadcast: state.broadcast,
@@ -336,6 +339,76 @@ app.post('/api/admin/prompts/:id/deploy', adminAuth, async (req, res) => {
   res.json({ success: true, message: `Prompt "${prompt.title}" is now LIVE!`, prompt });
 });
 
+// Remove / clear active prompt from participant screens (keep prompt in history)
+app.post('/api/admin/prompts/clear-active', adminAuth, async (req, res) => {
+  const state = await getLiveWorkshopState();
+
+  // 1. Save to Supabase
+  if (supabaseClient.isConnected()) {
+    await supabaseClient.saveSettings(state.workshopTitle, null, state.broadcast);
+  }
+
+  // 2. Update local fallback
+  fallbackStore.activePromptId = null;
+  saveFallback();
+
+  // 3. Broadcast real-time to all connected screens
+  broadcastEvent('prompt:cleared', {
+    prompt: null,
+    workshopTitle: state.workshopTitle
+  });
+  broadcastEvent('prompt:deployed', {
+    prompt: null,
+    workshopTitle: state.workshopTitle
+  });
+
+  res.json({ success: true, message: 'Active prompt removed from participant screens' });
+});
+
+// Undeploy a prompt (set status back to draft and remove from screen if active)
+app.post('/api/admin/prompts/:id/undeploy', adminAuth, async (req, res) => {
+  const { id } = req.params;
+  const state = await getLiveWorkshopState();
+  const prompt = state.prompts.find(p => p.id === id);
+
+  if (!prompt) {
+    return res.status(404).json({ error: 'Prompt not found' });
+  }
+
+  prompt.status = 'draft';
+  prompt.deployedAt = null;
+
+  const wasActive = state.activePromptId === id;
+
+  // 1. Save to Supabase
+  if (supabaseClient.isConnected()) {
+    await supabaseClient.savePrompt(prompt);
+    if (wasActive) {
+      await supabaseClient.saveSettings(state.workshopTitle, null, state.broadcast);
+    }
+  }
+
+  // 2. Update local fallback
+  const idx = fallbackStore.prompts.findIndex(p => p.id === id);
+  if (idx !== -1) fallbackStore.prompts[idx] = prompt;
+  if (wasActive) fallbackStore.activePromptId = null;
+  saveFallback();
+
+  // 3. Broadcast real-time if active prompt was undeployed
+  if (wasActive) {
+    broadcastEvent('prompt:cleared', {
+      prompt: null,
+      workshopTitle: state.workshopTitle
+    });
+    broadcastEvent('prompt:deployed', {
+      prompt: null,
+      workshopTitle: state.workshopTitle
+    });
+  }
+
+  res.json({ success: true, message: `Prompt "${prompt.title}" moved to draft and removed from screens.`, prompt });
+});
+
 // Delete prompt
 app.delete('/api/admin/prompts/:id', adminAuth, async (req, res) => {
   const { id } = req.params;
@@ -366,6 +439,12 @@ app.delete('/api/admin/prompts/:id', adminAuth, async (req, res) => {
       prompt: nextActive,
       workshopTitle: state.workshopTitle
     });
+    if (!nextActive) {
+      broadcastEvent('prompt:cleared', {
+        prompt: null,
+        workshopTitle: state.workshopTitle
+      });
+    }
   }
 
   saveFallback();
