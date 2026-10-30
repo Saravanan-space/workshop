@@ -64,6 +64,7 @@ const filterAllCount = document.getElementById('filterAllCount');
 const filterDeployedCount = document.getElementById('filterDeployedCount');
 const filterDraftCount = document.getElementById('filterDraftCount');
 const filterPills = document.querySelectorAll('.filter-pill');
+const clearHistoryBtn = document.getElementById('clearHistoryBtn');
 const exportJsonBtn = document.getElementById('exportJsonBtn');
 const importJsonInput = document.getElementById('importJsonInput');
 
@@ -156,7 +157,10 @@ function setupEventListeners() {
     removeLivePromptBtn.addEventListener('click', removeActivePromptFromScreens);
   }
 
-  // Export / Import
+  // Export / Import / Clear History
+  if (clearHistoryBtn) {
+    clearHistoryBtn.addEventListener('click', handleClearParticipantHistory);
+  }
   exportJsonBtn.addEventListener('click', handleExportJson);
   importJsonInput.addEventListener('change', handleImportJson);
 
@@ -784,7 +788,46 @@ async function handleEditWorkshopTitle() {
   }
 }
 
-// ---------------- EXPORT / IMPORT ----------------
+// ---------------- EXPORT / IMPORT / CLEAR HISTORY ----------------
+
+async function handleClearParticipantHistory() {
+  const deployedCount = currentData.prompts.filter(p => p.status === 'deployed').length;
+  if (deployedCount === 0) {
+    showToast('No deployed prompts in participant history', 'info');
+    return;
+  }
+
+  const confirmMsg = `Clear prompt history from all attendee screens?\n\n• Previous prompts will move to Draft in your prompt bank.\n• The currently live prompt (if any) will stay on their screen.\n• Attendees will immediately see their history drawer cleared.`;
+  if (!confirm(confirmMsg)) return;
+
+  clearHistoryBtn.disabled = true;
+  clearHistoryBtn.innerHTML = '<span>⏳ Clearing...</span>';
+
+  try {
+    const res = await fetch('/api/admin/clear-history', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-password': adminPassword
+      },
+      body: JSON.stringify({ keepActive: true })
+    });
+
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showToast(data.message || 'Participant history cleared!', 'success');
+      fetchWorkshopData();
+    } else {
+      showToast(data.error || 'Failed to clear history', 'error');
+    }
+  } catch (err) {
+    console.error('Clear history error:', err);
+    showToast('Network error clearing history', 'error');
+  } finally {
+    clearHistoryBtn.disabled = false;
+    clearHistoryBtn.innerHTML = '<span>🧹 Clear History</span>';
+  }
+}
 
 function handleExportJson() {
   const exportPayload = {

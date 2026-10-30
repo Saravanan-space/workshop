@@ -1,6 +1,6 @@
 {
   "workshopTitle": "Google Antigravity workshop by T M Saravanan",
-  "activePromptId": "p-prompt-1",
+  "activePromptId": null,
   "broadcast": null,
   "prompts": [
     {
@@ -11,10 +11,10 @@
       "presenterTip": "Swap [REPLACE: YOUR NAME] with your name and [REPLACE: YOUR DEGREE & COLLEGE] with your branch and year. Leave the color codes like #0d1117 as they are so the dark theme stays clean.",
       "whyItWorks": "Establishes an exact visual theme, color palette, and clear visual hierarchy (status badge, headline, student bio, dual buttons) so the coding agent outputs clean code instead of unstructured blocks.",
       "howNotToPrompt": "Example: 'Build me a hero section for my student portfolio with cool green colors and my name Alex.'\nWhy it fails: \"Cool green colors\" is subjective and usually produces unreadable bright lime text on white backgrounds, broken button margins, and no mobile-responsive design.",
-      "status": "deployed",
+      "status": "draft",
       "order": 1,
       "createdAt": "2026-10-29T18:00:00+00:00",
-      "deployedAt": "2026-10-29T18:49:10.059Z"
+      "deployedAt": null
     },
     {
       "id": "p-prompt-2",
@@ -26,7 +26,8 @@
       "howNotToPrompt": "Example: 'Put 3 projects on the page and make the cards move when I put my mouse on them.'\nWhy it fails: Lacks data structure and motion boundaries, causing the AI to write jittery mouse-tracking scripts that break scrolling and card alignment.",
       "status": "draft",
       "order": 2,
-      "createdAt": "2026-10-29T18:00:00+00:00"
+      "createdAt": "2026-10-29T18:00:00+00:00",
+      "deployedAt": null
     },
     {
       "id": "p-prompt-3",

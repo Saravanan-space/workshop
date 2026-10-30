@@ -698,6 +698,24 @@ select {
   transform: translateY(-1px);
 }
 
+.btn-clear-history {
+  color: var(--text-muted);
+  border-color: var(--border-glass);
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: var(--transition);
+}
+
+.btn-clear-history:hover {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.35);
+  transform: translateY(-1px);
+}
+
 .spotlight-badge {
   display: flex;
   align-items: center;

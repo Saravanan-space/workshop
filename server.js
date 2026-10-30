@@ -515,6 +515,60 @@ app.post('/api/admin/reorder', adminAuth, async (req, res) => {
   res.json({ success: true, message: 'Reordered successfully' });
 });
 
+// Clear prompt history for participants (archives/moves previous deployed prompts to draft)
+app.post('/api/admin/clear-history', adminAuth, async (req, res) => {
+  const state = await getLiveWorkshopState();
+  const activeId = state.activePromptId;
+
+  // Prompts to undeploy: all deployed prompts EXCEPT the currently active one (or all if keepActive is false)
+  const { keepActive = true } = req.body;
+
+  let clearedCount = 0;
+  const updates = [];
+
+  for (const prompt of state.prompts) {
+    if (prompt.status === 'deployed') {
+      const isActive = activeId && prompt.id === activeId;
+      if (!keepActive || !isActive) {
+        prompt.status = 'draft';
+        prompt.deployedAt = null;
+        clearedCount++;
+        if (supabaseClient.isConnected()) {
+          updates.push(supabaseClient.savePrompt(prompt));
+        }
+      }
+    }
+  }
+
+  if (updates.length > 0) {
+    await Promise.all(updates);
+  }
+
+  // Update fallbackStore
+  for (const prompt of fallbackStore.prompts) {
+    if (prompt.status === 'deployed') {
+      const isActive = activeId && prompt.id === activeId;
+      if (!keepActive || !isActive) {
+        prompt.status = 'draft';
+        prompt.deployedAt = null;
+      }
+    }
+  }
+  saveFallback();
+
+  // Real-time broadcast to all connected participant browsers to immediately clear their history drawer
+  broadcastEvent('history:cleared', {
+    clearedCount,
+    activePromptId: activeId
+  });
+
+  res.json({
+    success: true,
+    message: `Cleared ${clearedCount} prompt${clearedCount === 1 ? '' : 's'} from participant history.`,
+    clearedCount
+  });
+});
+
 // Server info / IP address for sharing
 app.get('/api/admin/network', adminAuth, (req, res) => {
   const ips = getLocalIpAddresses();

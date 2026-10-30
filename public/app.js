@@ -242,6 +242,25 @@ function initSSE() {
     clearActivePrompt();
   });
 
+  eventSource.addEventListener('history:cleared', (e) => {
+    try {
+      const data = e.data ? JSON.parse(e.data) : {};
+      // If an active prompt is kept, history only keeps that one; otherwise empty
+      if (data.activePromptId && currentActivePrompt && currentActivePrompt.id === data.activePromptId) {
+        promptHistory = [currentActivePrompt];
+      } else {
+        promptHistory = [];
+      }
+      historyCountEl.textContent = promptHistory.length;
+      renderHistory();
+      showToast('Presenter cleared prompt history');
+    } catch {
+      promptHistory = currentActivePrompt ? [currentActivePrompt] : [];
+      historyCountEl.textContent = promptHistory.length;
+      renderHistory();
+    }
+  });
+
   eventSource.addEventListener('broadcast:alert', (e) => {
     try {
       const broadcast = JSON.parse(e.data);
